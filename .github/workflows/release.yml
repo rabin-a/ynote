@@ -61,3 +61,39 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+      # Also ship the standalone CLI (`papery`) and MCP server (`papery-mcp`)
+      # so `install.sh cli|mcp|all` can fetch prebuilt binaries.
+      - name: Package CLI + MCP (macOS universal)
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cargo build --release -p papery-cli -p papery-mcp --target aarch64-apple-darwin
+          cargo build --release -p papery-cli -p papery-mcp --target x86_64-apple-darwin
+          mkdir -p dist
+          lipo -create target/aarch64-apple-darwin/release/papery     target/x86_64-apple-darwin/release/papery     -output dist/papery
+          lipo -create target/aarch64-apple-darwin/release/papery-mcp target/x86_64-apple-darwin/release/papery-mcp -output dist/papery-mcp
+          tar -czf papery-tools-macos-universal.tar.gz -C dist papery papery-mcp
+          gh release upload "${{ github.ref_name }}" papery-tools-macos-universal.tar.gz --clobber
+
+      - name: Package CLI + MCP (Linux)
+        if: matrix.platform == 'ubuntu-latest'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cargo build --release -p papery-cli -p papery-mcp
+          tar -czf papery-tools-linux-x86_64.tar.gz -C target/release papery papery-mcp
+          gh release upload "${{ github.ref_name }}" papery-tools-linux-x86_64.tar.gz --clobber
+
+      - name: Package CLI + MCP (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cargo build --release -p papery-cli -p papery-mcp
+          Compress-Archive -Path target/release/papery.exe,target/release/papery-mcp.exe -DestinationPath papery-tools-windows-x86_64.zip -Force
+          gh release upload "${{ github.ref_name }}" papery-tools-windows-x86_64.zip --clobber

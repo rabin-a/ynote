@@ -16,6 +16,8 @@ const state = {
   dirty: new Set(),
   headingLines: {},
   view: "split",
+  renaming: false, // suppress tree rebuilds while an inline rename is active
+  newMode: "file", // "file" | "group" for the inline new-item input
   renderTimer: null,
   saveTimer: null,
   toastTimer: null,
@@ -66,6 +68,9 @@ function groupDocs() {
 }
 
 function renderTree() {
+  // Don't rebuild the tree while an inline rename input is open — a rebuild
+  // would destroy the input (openFile's re-render was clobbering renames).
+  if (state.renaming) return;
   const tree = $("#file-tree");
   tree.innerHTML = "";
   for (const g of groupDocs()) {
@@ -336,41 +341,75 @@ async function newUntitledFile(folder) {
   }
 }
 
-function showNewGroup() {
+function showNew(mode) {
+  state.newMode = mode;
   const box = $("#new-file");
   box.hidden = false;
   const input = $("#new-name");
+  input.placeholder = mode === "group" ? "new group name" : "note name (.md added)";
+  const hint = box.querySelector(".new-hint");
+  if (hint) {
+    hint.textContent =
+      mode === "group" ? "↵ create group · esc cancel" : "↵ create .md file · esc cancel";
+  }
   input.value = "";
   input.focus();
 }
-function hideNewGroup() {
+function hideNew() {
   $("#new-file").hidden = true;
 }
-async function commitNewGroup() {
-  const folder = $("#new-name").value.trim().replace(/^\/+|\/+$/g, "");
-  hideNewGroup();
-  if (!folder) return;
-  // A group is a folder; create it by starting an untitled file inside it.
-  await newUntitledFile(folder);
+async function commitNew() {
+  const val = $("#new-name").value.trim();
+  hideNew();
+  if (!val) return;
+  if (state.newMode === "group") {
+    await newUntitledFile(val.replace(/^\/+|\/+$/g, ""));
+  } else {
+    await newNamedFile(val);
+  }
+}
+
+// Add a markdown file directly by name (blank canvas; `.md` appended if omitted).
+async function newNamedFile(name) {
+  if (!state.root) return;
+  name = forceMd(name.replace(/^\/+/, "")); // always a .md file
+  if (state.docs.some((d) => d.path === name)) {
+    await openFile(name);
+    return;
+  }
+  try {
+    await invoke("write_file", { root: state.root, path: name, content: "" });
+    state.docs = await invoke("list_docs", { root: state.root });
+    renderTree();
+    await openFile(name);
+    setView(state.view === "reading" ? "split" : state.view);
+    $("#editor").focus();
+  } catch (e) {
+    setSave("Create failed: " + e, "dirty");
+  }
 }
 
 // ------------------------------------------------------------ rename file ---
 
 function beginRename(path, nameEl) {
+  state.renaming = true;
   const base = path.split("/").pop();
+  // Only the name is editable; the `.md` extension is fixed, so edit the stem.
+  const stem = base.replace(/\.[A-Za-z][\w]*$/, "");
   const input = document.createElement("input");
   input.className = "rename-input";
-  input.value = base;
+  input.value = stem;
+  input.title = "Rename (stays .md)";
   input.spellcheck = false;
   nameEl.replaceWith(input);
   input.focus();
-  const dot = base.lastIndexOf(".");
-  input.setSelectionRange(0, dot > 0 ? dot : base.length);
+  input.setSelectionRange(0, stem.length);
 
   let done = false;
   const finish = (commit) => {
     if (done) return;
     done = true;
+    state.renaming = false;
     if (commit) commitRename(path, input.value);
     else renderTree();
   };
@@ -388,14 +427,11 @@ function beginRename(path, nameEl) {
 }
 
 async function commitRename(oldPath, value) {
-  let base = value.trim();
-  if (!base) return renderTree();
-  if (!/\.[a-z0-9]+$/i.test(base)) {
-    const ext = oldPath.includes(".") ? oldPath.slice(oldPath.lastIndexOf(".")) : ".md";
-    base += ext;
-  }
+  const name = value.trim();
+  if (!name) return renderTree();
   const dir = oldPath.includes("/") ? oldPath.slice(0, oldPath.lastIndexOf("/") + 1) : "";
-  const newPath = dir + base;
+  const newPath = dir + forceMd(name); // extension is always .md
+  state.renaming = false;
   if (newPath === oldPath) return renderTree();
   if (state.docs.some((d) => d.path === newPath)) {
     setSave("Name already exists", "dirty");
@@ -440,6 +476,10 @@ function toggleSidebar() {
 function escapeHtml(s) {
   return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 }
+// papery only manages markdown files: strip any typed extension and force `.md`.
+function forceMd(name) {
+  return name.replace(/\.[A-Za-z][\w]*$/, "") + ".md";
+}
 function cssEscape(s) {
   return window.CSS && CSS.escape ? CSS.escape(s) : s.replace(/"/g, '\\"');
 }
@@ -459,15 +499,15 @@ function wire() {
     if (!e.target.closest(".export-wrap")) hideExportMenu();
   });
 
-  $("#btn-new").onclick = () => newUntitledFile(null);
-  $("#btn-new-group").onclick = showNewGroup;
+  $("#btn-new").onclick = () => showNew("file");
+  $("#btn-new-group").onclick = () => showNew("group");
   $("#new-name").addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      commitNewGroup();
+      commitNew();
     } else if (e.key === "Escape") {
       e.preventDefault();
-      hideNewGroup();
+      hideNew();
     }
   });
 

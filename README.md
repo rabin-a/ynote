@@ -30,6 +30,14 @@ curl -fsSL https://raw.githubusercontent.com/rabin-a/papery/main/install.sh | ba
 - **Linux** — `.AppImage` → `~/.local/bin/papery` (needs FUSE: `sudo apt install libfuse2`).
 - **Windows** — download the `.msi` from [**Releases**](https://github.com/rabin-a/papery/releases/latest) and run it.
 
+Install the **CLI** or **MCP server** instead of (or alongside) the app by passing a component:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rabin-a/papery/main/install.sh | bash -s -- cli   # the `papery` CLI
+curl -fsSL https://raw.githubusercontent.com/rabin-a/papery/main/install.sh | bash -s -- mcp   # papery-mcp (prints the MCP config)
+curl -fsSL https://raw.githubusercontent.com/rabin-a/papery/main/install.sh | bash -s -- all   # app + cli + mcp
+```
+
 Or grab any installer directly from the [Releases](https://github.com/rabin-a/papery/releases/latest) page.
 
 > The macOS and Windows builds aren't code-signed/notarized yet. The install script clears the macOS Gatekeeper quarantine for you; if you install the `.dmg` manually, right-click **papery.app → Open** on first launch (or `xattr -cr /Applications/papery.app`).
