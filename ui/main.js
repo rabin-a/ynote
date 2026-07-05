@@ -57,12 +57,12 @@ function entryOf(path) {
 function byCreatedDesc(a, b) {
   return (entryOf(b)?.created || 0) - (entryOf(a)?.created || 0);
 }
-// The list label: the note's title (front matter / heading / first line),
-// falling back to the filename stem for empty or config files.
+// The list label is the note's *name* — its title (front matter / heading /
+// first line). Filenames are never shown; empty notes read "New note".
 function labelOf(path) {
+  if (path === "papery.toml") return "Project settings";
   const e = entryOf(path);
-  if (e && e.title) return e.title;
-  return path.split("/").pop().replace(/\.md$/i, "");
+  return e && e.title ? e.title : "New note";
 }
 
 function groupDocs() {
@@ -95,6 +95,12 @@ function renderTree() {
       h.className = "folder-head";
       h.innerHTML = `<span class="chev">▼</span>${escapeHtml(g.folder)}`;
       makeDropTarget(h, g.folder); // drop a file here to move it into this group
+      h.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        showCtxMenu(e.clientX, e.clientY, [
+          { label: "Delete group", danger: true, fn: () => deleteGroupAction(g.folder) },
+        ]);
+      });
       tree.appendChild(h);
     }
     for (const path of g.files) {
@@ -102,7 +108,7 @@ function renderTree() {
       row.className = "file-row" + (path === state.file ? " active" : "");
       row.innerHTML =
         `<span class="file-dot ${dotClass(path)}"></span>` +
-        `<span class="file-name" title="${escapeHtml(path)}">${escapeHtml(labelOf(path))}</span>` +
+        `<span class="file-name">${escapeHtml(labelOf(path))}</span>` +
         (state.dirty.has(path) ? `<span class="file-dirty"></span>` : "");
       row.onclick = () => openFile(path);
       if (path !== "papery.toml") {
@@ -114,11 +120,18 @@ function renderTree() {
         });
         // Double-click the name to rename inline.
         const nameEl = row.querySelector(".file-name");
-        nameEl.title = "Double-click to rename · drag to move";
+        nameEl.title = "Double-click to rename · drag to move · right-click for options";
         nameEl.ondblclick = (e) => {
           e.stopPropagation();
           beginRename(path, nameEl);
         };
+        row.addEventListener("contextmenu", (e) => {
+          e.preventDefault();
+          showCtxMenu(e.clientX, e.clientY, [
+            { label: "Rename", fn: () => beginRename(path, row.querySelector(".file-name")) },
+            { label: "Delete", danger: true, fn: () => deleteFileAction(path) },
+          ]);
+        });
       }
       tree.appendChild(row);
     }
@@ -139,7 +152,7 @@ async function openFile(path) {
     state.file = path;
     state.content = content;
     $("#editor").value = content;
-    $("#active-path").textContent = path;
+    updateActiveLabel();
     setSave("Saved", "saved");
     renderTree();
     await renderPreview();
@@ -262,6 +275,7 @@ async function save() {
     // Refresh titles (derived from content) so the list reflects the edit.
     state.docs = await invoke("list_docs", { root: state.root });
     renderTree();
+    updateActiveLabel();
     setSave("Saved", "saved");
   } catch (e) {
     setSave("Save failed: " + e, "dirty");
@@ -279,6 +293,11 @@ function updateStats() {
   const words = (body.match(/\S+/g) || []).length;
   $("#stat-words").textContent = words + " words";
   $("#stat-read").textContent = Math.max(1, Math.round(words / 200)) + " min read";
+}
+
+// The tab bar shows the note's name (title), never its filename.
+function updateActiveLabel() {
+  $("#active-path").textContent = state.file ? labelOf(state.file) : "—";
 }
 
 // ------------------------------------------------------------------ export ---
@@ -434,26 +453,27 @@ async function newNamedFile(name) {
 
 // ------------------------------------------------------------ rename file ---
 
+// Renaming a note edits its *title* (the note's name), which lives in the
+// content's first line / heading — the filename never changes.
 function beginRename(path, nameEl) {
+  if (path === "papery.toml") return;
   state.renaming = true;
-  const base = path.split("/").pop();
-  // Only the name is editable; the `.md` extension is fixed, so edit the stem.
-  const stem = base.replace(/\.[A-Za-z][\w]*$/, "");
+  const current = labelOf(path) === "New note" ? "" : labelOf(path);
   const input = document.createElement("input");
   input.className = "rename-input";
-  input.value = stem;
-  input.title = "Rename (stays .md)";
+  input.value = current;
+  input.title = "Rename note";
   input.spellcheck = false;
   nameEl.replaceWith(input);
   input.focus();
-  input.setSelectionRange(0, stem.length);
+  input.select();
 
   let done = false;
   const finish = (commit) => {
     if (done) return;
     done = true;
     state.renaming = false;
-    if (commit) commitRename(path, input.value);
+    if (commit) commitTitle(path, input.value);
     else renderTree();
   };
   input.onclick = (e) => e.stopPropagation();
@@ -469,27 +489,47 @@ function beginRename(path, nameEl) {
   input.onblur = () => finish(true);
 }
 
-async function commitRename(oldPath, value) {
-  const name = value.trim();
-  if (!name) return renderTree();
-  const dir = oldPath.includes("/") ? oldPath.slice(0, oldPath.lastIndexOf("/") + 1) : "";
-  const newPath = dir + forceMd(name); // extension is always .md
-  state.renaming = false;
-  if (newPath === oldPath) return renderTree();
-  if (state.docs.some((d) => d.path === newPath)) {
-    setSave("Name already exists", "dirty");
-    return renderTree();
+// Set a document's title in its markdown: front matter `title`, else the first
+// heading's text, else the first non-empty line (preserving heading level).
+function setDocTitle(content, title) {
+  const bom = content.startsWith("﻿") ? "﻿" : "";
+  const rest = content.slice(bom.length);
+  const fm = rest.match(/^---\n[\s\S]*?\n---\n?/);
+  if (fm && /^title:/m.test(fm[0])) {
+    return bom + rest.replace(/^title:.*$/m, "title: " + title);
   }
+  const fmStr = fm ? fm[0] : "";
+  const lines = rest.slice(fmStr.length).split("\n");
+  let i = 0;
+  while (i < lines.length && !lines[i].trim()) i++;
+  if (i < lines.length) {
+    const h = lines[i].match(/^(#{1,6}\s+)/);
+    lines[i] = (h ? h[1] : "") + title;
+  } else {
+    lines.unshift(title);
+  }
+  return bom + fmStr + lines.join("\n");
+}
+
+async function commitTitle(path, value) {
+  const title = value.trim();
+  if (!title || title === labelOf(path)) return renderTree();
   try {
-    if (state.file === oldPath && state.dirty.has(oldPath)) await save();
-    await invoke("rename_file", { root: state.root, from: oldPath, to: newPath });
-    if (state.file === oldPath) {
-      state.file = newPath;
-      $("#active-path").textContent = newPath;
+    const content =
+      state.file === path
+        ? state.content
+        : await invoke("read_file", { root: state.root, path });
+    const updated = setDocTitle(content, title);
+    await invoke("write_file", { root: state.root, path, content: updated });
+    if (state.file === path) {
+      state.content = updated;
+      $("#editor").value = updated;
+      state.dirty.delete(path);
+      if (!state.editing) await renderPreview();
     }
-    state.dirty.delete(oldPath);
     state.docs = await invoke("list_docs", { root: state.root });
     renderTree();
+    updateActiveLabel();
     setSave("Renamed", "saved");
   } catch (e) {
     setSave("Rename failed: " + e, "dirty");
@@ -525,16 +565,80 @@ async function moveFile(path, folder) {
   try {
     if (state.file === path && state.dirty.has(path)) await save();
     await invoke("rename_file", { root: state.root, from: path, to });
-    if (state.file === path) {
-      state.file = to;
-      $("#active-path").textContent = to;
-    }
+    if (state.file === path) state.file = to;
     state.dirty.delete(path);
     state.docs = await invoke("list_docs", { root: state.root });
     renderTree();
+    updateActiveLabel();
     setSave("Moved to " + (folder || "Files"), "saved");
   } catch (e) {
     setSave("Move failed: " + e, "dirty");
+  }
+}
+
+// ----------------------------------------------- context menu / deleting ---
+
+function showCtxMenu(x, y, items) {
+  const m = $("#ctx-menu");
+  m.innerHTML = "";
+  items.forEach((it) => {
+    const b = document.createElement("div");
+    b.className = "ctx-item" + (it.danger ? " danger" : "");
+    b.textContent = it.label;
+    b.onclick = () => {
+      hideCtxMenu();
+      it.fn();
+    };
+    m.appendChild(b);
+  });
+  m.hidden = false;
+  m.style.left = Math.min(x, window.innerWidth - m.offsetWidth - 8) + "px";
+  m.style.top = Math.min(y, window.innerHeight - m.offsetHeight - 8) + "px";
+}
+function hideCtxMenu() {
+  $("#ctx-menu").hidden = true;
+}
+
+async function deleteFileAction(path) {
+  if (path === "papery.toml") return;
+  const ok = await dialog.confirm(`Delete “${labelOf(path)}”? This can’t be undone.`, {
+    title: "Delete note",
+    kind: "warning",
+  });
+  if (!ok) return;
+  try {
+    await invoke("delete_file", { root: state.root, path });
+    state.dirty.delete(path);
+    state.docs = await invoke("list_docs", { root: state.root });
+    if (state.file === path) {
+      if (state.docs.length) await openFile(state.docs[0].path);
+      else clearSurface();
+    }
+    renderTree();
+    showToast("Deleted");
+  } catch (e) {
+    setSave("Delete failed: " + e, "dirty");
+  }
+}
+
+async function deleteGroupAction(folder) {
+  const n = state.docs.filter((d) => d.path.startsWith(folder + "/")).length;
+  const ok = await dialog.confirm(
+    `Delete group “${folder}” and its ${n} note${n === 1 ? "" : "s"}? This can’t be undone.`,
+    { title: "Delete group", kind: "warning" }
+  );
+  if (!ok) return;
+  try {
+    await invoke("delete_group", { root: state.root, folder });
+    state.docs = await invoke("list_docs", { root: state.root });
+    if (state.file && state.file.startsWith(folder + "/")) {
+      if (state.docs.length) await openFile(state.docs[0].path);
+      else clearSurface();
+    }
+    renderTree();
+    showToast("Deleted group " + folder);
+  } catch (e) {
+    setSave("Delete failed: " + e, "dirty");
   }
 }
 
@@ -792,8 +896,12 @@ function wire() {
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".export-wrap")) hideExportMenu();
   });
+  document.addEventListener("mousedown", (e) => {
+    if (!e.target.closest("#ctx-menu")) hideCtxMenu();
+  });
+  document.addEventListener("scroll", hideCtxMenu, true);
 
-  $("#btn-new").onclick = () => showNew("file");
+  $("#btn-new").onclick = () => newUntitledFile(null); // date-named note; type the title
   $("#btn-new-group").onclick = () => showNew("group");
   makeDropTarget($("#files-head"), null); // drop here to move a note to the root
   $("#new-name").addEventListener("keydown", (e) => {
@@ -857,12 +965,18 @@ function wire() {
     } else if (k === "e") {
       e.preventDefault();
       toggleExportMenu();
+    } else if (k === "p") {
+      e.preventDefault();
+      doExport("pdf"); // print → export as PDF (Save dialog)
     } else if (k === "n") {
       e.preventDefault();
       newUntitledFile(null);
     } else if (k === "\\") {
       e.preventDefault();
       cycleView();
+    } else if (k === "d") {
+      e.preventDefault();
+      if (state.file && state.file !== "papery.toml") deleteFileAction(state.file);
     }
   });
 }

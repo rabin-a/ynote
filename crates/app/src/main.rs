@@ -134,6 +134,18 @@ fn delete_file(root: String, path: String) -> Result<(), String> {
     std::fs::remove_file(abs).map_err(|e| e.to_string())
 }
 
+/// Delete a group (folder) and everything in it. Path-safe via resolve_path.
+#[tauri::command]
+fn delete_group(root: String, folder: String) -> Result<(), String> {
+    let project = proj(&root)?;
+    let abs = project.resolve_path(&folder).map_err(|e| e.to_string())?;
+    if abs.is_dir() {
+        std::fs::remove_dir_all(abs).map_err(|e| e.to_string())
+    } else {
+        Err("not a folder".into())
+    }
+}
+
 #[tauri::command]
 fn render_preview(root: String, path: String, content: String) -> Result<String, String> {
     let project = proj(&root)?;
@@ -293,6 +305,7 @@ fn main() {
             create_file,
             rename_file,
             delete_file,
+            delete_group,
             render_preview,
             preview_css,
             get_outline,
