@@ -31,7 +31,8 @@ pub fn html_standalone(project: &Project, rel: &Path, source: &str) -> Result<St
 pub fn html_preview(project: &Project, rel: &Path, source: &str) -> Result<String> {
     let mut opts = RenderOptions::preview()
         .with_config(&project.config().render)
-        .with_root(Some(project.root().to_path_buf()));
+        .with_root(Some(project.root().to_path_buf()))
+        .with_preview_edit(true);
     // Inline local images as base64 so they render inside the webview without
     // needing an asset-protocol grant; containment is enforced by `with_root`.
     opts.inline_images = true;

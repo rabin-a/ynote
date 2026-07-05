@@ -18,6 +18,7 @@ const state = {
   view: "split",
   renaming: false, // suppress tree rebuilds while an inline rename is active
   newMode: "file", // "file" | "group" for the inline new-item input
+  editCtx: null, // active in-preview block edit (source splice context)
   renderTimer: null,
   saveTimer: null,
   toastTimer: null,
@@ -49,10 +50,25 @@ function dotClass(path) {
   return "dot-other";
 }
 
+function entryOf(path) {
+  return state.docs.find((d) => d.path === path);
+}
+// Newest first (Apple Notes style). Config/untitled with no created time sink.
+function byCreatedDesc(a, b) {
+  return (entryOf(b)?.created || 0) - (entryOf(a)?.created || 0);
+}
+// The list label: the note's title (front matter / heading / first line),
+// falling back to the filename stem for empty or config files.
+function labelOf(path) {
+  const e = entryOf(path);
+  if (e && e.title) return e.title;
+  return path.split("/").pop().replace(/\.md$/i, "");
+}
+
 function groupDocs() {
   const all = state.docs.map((d) => d.path).slice();
   if (!all.includes("papery.toml")) all.push("papery.toml");
-  const roots = all.filter((p) => !p.includes("/")).sort();
+  const roots = all.filter((p) => !p.includes("/")).sort(byCreatedDesc);
   const folders = {};
   all
     .filter((p) => p.includes("/"))
@@ -63,7 +79,7 @@ function groupDocs() {
   const groups = [{ folder: null, files: roots }];
   Object.keys(folders)
     .sort()
-    .forEach((f) => groups.push({ folder: f, files: folders[f].sort() }));
+    .forEach((f) => groups.push({ folder: f, files: folders[f].sort(byCreatedDesc) }));
   return groups;
 }
 
@@ -85,7 +101,7 @@ function renderTree() {
       row.className = "file-row" + (path === state.file ? " active" : "");
       row.innerHTML =
         `<span class="file-dot ${dotClass(path)}"></span>` +
-        `<span class="file-name">${escapeHtml(path.split("/").pop())}</span>` +
+        `<span class="file-name" title="${escapeHtml(path)}">${escapeHtml(labelOf(path))}</span>` +
         (state.dirty.has(path) ? `<span class="file-dirty"></span>` : "");
       row.onclick = () => openFile(path);
       // Double-click the name to rename inline (not the project config file).
@@ -149,6 +165,7 @@ function onEdit() {
 
 async function renderPreview() {
   if (!state.root || !state.file) return;
+  if (state.editCtx) return; // don't clobber an in-progress in-preview edit
   const isMd = state.file.endsWith(".md");
   const preview = $("#preview");
   if (!isMd) {
@@ -233,6 +250,8 @@ async function save() {
   try {
     await invoke("write_file", { root: state.root, path: state.file, content: state.content });
     state.dirty.delete(state.file);
+    // Refresh titles (derived from content) so the list reflects the edit.
+    state.docs = await invoke("list_docs", { root: state.root });
     renderTree();
     setSave("Saved", "saved");
   } catch (e) {
@@ -484,6 +503,160 @@ function cssEscape(s) {
   return window.CSS && CSS.escape ? CSS.escape(s) : s.replace(/"/g, '\\"');
 }
 
+// ------------------------------------------------ edit directly in preview ---
+//
+// The preview is the Rust-rendered HTML; in edit mode each top-level block is a
+// contenteditable wrapper tagged with its source byte range (data-bs/data-be).
+// Editing a block serializes just that block back to markdown and splices it
+// into the source, so front matter and untouched blocks are preserved exactly.
+
+const _enc = new TextEncoder();
+const _dec = new TextDecoder();
+
+function serializeInline(node) {
+  let out = "";
+  node.childNodes.forEach((n) => {
+    if (n.nodeType === 3) {
+      out += n.nodeValue;
+      return;
+    }
+    if (n.nodeType !== 1) return;
+    const t = n.tagName;
+    if (t === "BR") out += "\n";
+    else if (t === "STRONG" || t === "B") out += "**" + serializeInline(n) + "**";
+    else if (t === "EM" || t === "I") out += "*" + serializeInline(n) + "*";
+    else if (t === "DEL" || t === "S") out += "~~" + serializeInline(n) + "~~";
+    else if (t === "CODE") out += "`" + n.textContent + "`";
+    else if (t === "A") out += "[" + serializeInline(n) + "](" + (n.getAttribute("href") || "") + ")";
+    else if (t === "IMG")
+      out += "![" + (n.getAttribute("alt") || "") + "](" + (n.getAttribute("data-osrc") || n.getAttribute("src") || "") + ")";
+    else if (t === "DIV") out += "\n" + serializeInline(n); // contenteditable line breaks
+    else out += serializeInline(n);
+  });
+  return out;
+}
+
+function serializeList(listEl, depth) {
+  const ordered = listEl.tagName === "OL";
+  const pad = "  ".repeat(depth);
+  let idx = ordered ? parseInt(listEl.getAttribute("start") || "1", 10) : 1;
+  const lines = [];
+  [...listEl.children].forEach((li) => {
+    if (li.tagName !== "LI") return;
+    const marker = ordered ? idx++ + "." : "-";
+    let task = "";
+    const cb = li.querySelector('input[type="checkbox"]');
+    if (li.classList.contains("task-list-item") && cb) task = cb.checked ? "[x] " : "[ ] ";
+    const clone = li.cloneNode(true);
+    clone.querySelectorAll("ul,ol").forEach((n) => n.remove());
+    const cbx = clone.querySelector('input[type="checkbox"]');
+    if (cbx) cbx.remove();
+    const text = serializeInline(clone).replace(/\s+/g, " ").trim();
+    lines.push(pad + marker + " " + task + text);
+    const nested = li.querySelector(":scope > ul, :scope > ol");
+    if (nested) lines.push(serializeList(nested, depth + 1));
+  });
+  return lines.join("\n");
+}
+
+function serializeTable(t) {
+  const heads = [...t.querySelectorAll("thead th")].map((th) =>
+    serializeInline(th).replace(/\s+/g, " ").trim()
+  );
+  const aligns = [...t.querySelectorAll("thead th")].map((th) => {
+    const s = th.getAttribute("style") || "";
+    return s.includes("center") ? ":---:" : s.includes("right") ? "---:" : "---";
+  });
+  const rows = [...t.querySelectorAll("tbody tr")].map((tr) =>
+    [...tr.children].map((td) => serializeInline(td).replace(/\s+/g, " ").trim())
+  );
+  const line = (arr) => "| " + arr.join(" | ") + " |";
+  return [line(heads), line(aligns), ...rows.map(line)].join("\n");
+}
+
+function serializeBlock(el) {
+  const tag = el.tagName;
+  if (/^H[1-6]$/.test(tag))
+    return "#".repeat(+tag[1]) + " " + serializeInline(el).replace(/\s+/g, " ").trim();
+  if (tag === "P") return serializeInline(el).replace(/ /g, " ").trim();
+  if (tag === "BLOCKQUOTE")
+    return serializeInline(el).trim().split("\n").map((l) => "> " + l.trim()).join("\n");
+  if (tag === "PRE") {
+    const code = el.querySelector("code") || el;
+    const m = (code.className || "").match(/language-([\w-]+)/);
+    return "```" + (m ? m[1] : "") + "\n" + code.textContent.replace(/\n$/, "") + "\n```";
+  }
+  if (tag === "UL" || tag === "OL") return serializeList(el, 0);
+  if (tag === "TABLE") return serializeTable(el);
+  if (tag === "HR") return "---";
+  return serializeInline(el).trim();
+}
+
+function blockToMarkdown(wrapper) {
+  const el = wrapper.firstElementChild || wrapper;
+  return serializeBlock(el).replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function setupPreviewEditing() {
+  const preview = $("#preview");
+
+  preview.addEventListener("focusin", (e) => {
+    const block = e.target.closest(".pv-block");
+    if (!block) return;
+    const bs = +block.dataset.bs;
+    const be = +block.dataset.be;
+    const bytes = _enc.encode(state.content);
+    state.editCtx = {
+      block,
+      bs,
+      before: _dec.decode(bytes.slice(0, bs)),
+      after: _dec.decode(bytes.slice(be)),
+      origLen: be - bs,
+    };
+  });
+
+  preview.addEventListener("input", (e) => {
+    const ctx = state.editCtx;
+    if (!ctx || !ctx.block.contains(e.target)) return;
+    const md = blockToMarkdown(ctx.block);
+    state.content = ctx.before + md + ctx.after;
+    if (state.file) state.dirty.add(state.file);
+    $("#editor").value = state.content; // keep source view in sync (no input event)
+    ctx.block.dataset.be = ctx.bs + _enc.encode(md).length;
+    setSave("Editing…", "dirty");
+    updateStats();
+    clearTimeout(state.saveTimer);
+    state.saveTimer = setTimeout(save, 900);
+  });
+
+  preview.addEventListener("focusout", (e) => {
+    const ctx = state.editCtx;
+    if (!ctx) return;
+    // Shift following blocks' offsets by this edit's byte delta so the next
+    // block edited splices at the right place (no full re-render needed).
+    const delta = _enc.encode(blockToMarkdown(ctx.block)).length - ctx.origLen;
+    if (delta !== 0) {
+      let sib = ctx.block.nextElementSibling;
+      while (sib) {
+        if (sib.classList && sib.classList.contains("pv-block")) {
+          sib.dataset.bs = +sib.dataset.bs + delta;
+          sib.dataset.be = +sib.dataset.be + delta;
+        }
+        sib = sib.nextElementSibling;
+      }
+    }
+    state.editCtx = null;
+    // Left the preview entirely → normalize with a fresh render.
+    const to = e.relatedTarget;
+    if (!to || !preview.contains(to)) {
+      clearTimeout(state.normalizeTimer);
+      state.normalizeTimer = setTimeout(() => {
+        if (!state.editCtx) renderPreview();
+      }, 300);
+    }
+  });
+}
+
 // ------------------------------------------------------------------- wire ---
 
 function wire() {
@@ -512,6 +685,7 @@ function wire() {
   });
 
   $("#editor").addEventListener("input", onEdit);
+  setupPreviewEditing();
   $("#preview-scroll").addEventListener("scroll", () => {
     if (state._raf) return;
     state._raf = requestAnimationFrame(() => {

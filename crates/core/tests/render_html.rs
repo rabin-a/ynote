@@ -119,6 +119,41 @@ fn safe_link_schemes_pass_through() {
 }
 
 #[test]
+fn preview_edit_block_ranges_map_back_to_source() {
+    // Each block's data-bs/data-be must slice its exact markdown out of the
+    // source — including a block containing multi-byte characters, since the
+    // WYSIWYG splice would corrupt the document if the byte offsets were wrong.
+    let src = "# Title\n\nA para.\n\n- one\n- two\n\n## Über café ☕\n\nlast line.\n";
+    let opts = RenderOptions {
+        preview_edit: true,
+        ..RenderOptions::preview()
+    };
+    let html = render_html(src, &opts).unwrap();
+
+    // Pull out every (data-bs, data-be) pair in document order.
+    let mut ranges = Vec::new();
+    let mut rest = html.as_str();
+    while let Some(i) = rest.find("data-bs=\"") {
+        let a = &rest[i + 9..];
+        let bs: usize = a[..a.find('"').unwrap()].parse().unwrap();
+        let b = &a[a.find("data-be=\"").unwrap() + 9..];
+        let be: usize = b[..b.find('"').unwrap()].parse().unwrap();
+        ranges.push((bs, be));
+        rest = b;
+    }
+    let slices: Vec<&str> = ranges.iter().map(|(a, b)| &src[*a..*b]).collect();
+
+    assert_eq!(slices[0], "# Title");
+    assert_eq!(slices[1], "A para.");
+    assert_eq!(slices[2], "- one\n- two");
+    assert_eq!(slices[3], "## Über café ☕");
+    assert_eq!(slices[4], "last line.");
+    // Every block wrapper is contenteditable.
+    assert_eq!(html.matches("class=\"pv-block\"").count(), 5);
+    assert!(html.contains("contenteditable=\"true\""));
+}
+
+#[test]
 fn raw_html_is_escaped_not_executed() {
     let h = frag("before <script>alert(1)</script> after\n\n<div onclick=\"x\">block</div>\n");
     assert!(!h.contains("<script>"));

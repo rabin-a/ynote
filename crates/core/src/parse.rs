@@ -122,6 +122,41 @@ pub fn title_of(source: &str) -> Option<String> {
     document_title(root, fm.as_ref())
 }
 
+/// A human-friendly title for file lists (Apple Notes style): front matter
+/// `title`, else the first heading, else the first non-empty line with its
+/// leading markdown markers stripped. `None` only for an empty document.
+pub fn display_title(source: &str) -> Option<String> {
+    if let Some(t) = title_of(source) {
+        let t = t.trim().to_string();
+        if !t.is_empty() {
+            return Some(t);
+        }
+    }
+    let markers = |c: char| "#>-*+ \t".contains(c);
+    for line in strip_front_matter(source).lines() {
+        let l = line.trim();
+        if l.is_empty() {
+            continue;
+        }
+        let stripped = l.trim_start_matches(markers).trim();
+        if !stripped.is_empty() {
+            return Some(stripped.to_string());
+        }
+    }
+    None
+}
+
+/// Strip a leading `---` front matter block (for line-based title scanning).
+fn strip_front_matter(source: &str) -> &str {
+    let s = source.strip_prefix('\u{feff}').unwrap_or(source);
+    if let Some(rest) = s.strip_prefix("---") {
+        if let Some(idx) = rest.find("\n---") {
+            return rest[idx + 4..].trim_start_matches(['\n', '\r']);
+        }
+    }
+    s
+}
+
 /// The document title: front matter `title`, else the first level-1 heading's text.
 pub fn document_title<'a>(root: Ast<'a>, fm: Option<&FrontMatter>) -> Option<String> {
     if let Some(t) = fm.and_then(|f| f.title()) {

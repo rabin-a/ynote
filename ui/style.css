@@ -281,6 +281,13 @@ body {
 #preview.papery { max-width: 720px; margin: 0 auto; padding: 46px 46px 44vh; }
 /* Reading mode gets nearly the full pane width (split stays a comfy measure). */
 #surface.mode-reading #preview.papery { max-width: min(1180px, 92%); padding-left: 5%; padding-right: 5%; }
+
+/* In-preview WYSIWYG editing: each block is a contenteditable wrapper. Only
+   horizontal padding so vertical margins still collapse (spacing unchanged). */
+.papery .pv-block { outline: none; padding: 0 12px; margin: 0 -12px; border-radius: 6px; transition: background 0.1s; }
+.papery .pv-block:first-child > :first-child { margin-top: 0; }
+.papery .pv-block:hover { background: rgba(0, 0, 0, 0.018); }
+.papery .pv-block:focus-within { background: rgba(192, 80, 63, 0.05); box-shadow: inset 3px 0 0 var(--accent); }
 .papery {
   font-family: var(--serif); color: var(--ink-soft); font-size: 17px; line-height: 1.75;
 }

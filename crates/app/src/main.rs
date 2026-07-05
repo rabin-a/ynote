@@ -28,18 +28,33 @@ struct ProjectInfo {
 struct DocEntry {
     path: String,
     title: Option<String>,
+    /// Creation time (unix seconds) for date-based sorting; falls back to the
+    /// modified time when the filesystem doesn't expose a creation time.
+    created: u64,
 }
 
 fn doc_entries(project: &Project) -> Result<Vec<DocEntry>, String> {
     let docs = project.documents().map_err(|e| e.to_string())?;
     Ok(docs
         .iter()
-        .map(|d| DocEntry {
-            path: d.to_string_lossy().replace('\\', "/"),
-            title: project
-                .read_document(d)
+        .map(|d| {
+            let content = project.read_document(d).ok();
+            let title = content
+                .as_deref()
+                .and_then(papery_core::parse::display_title);
+            let created = project
+                .resolve_path(d)
                 .ok()
-                .and_then(|t| papery_core::parse::title_of(&t)),
+                .and_then(|p| std::fs::metadata(&p).ok())
+                .and_then(|m| m.created().or_else(|_| m.modified()).ok())
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            DocEntry {
+                path: d.to_string_lossy().replace('\\', "/"),
+                title,
+                created,
+            }
         })
         .collect())
 }
