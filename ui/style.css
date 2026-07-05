@@ -192,10 +192,10 @@ body {
 }
 .note-title {
   display: flex; align-items: center; gap: 6px;
-  font-size: 14px; font-weight: 600; color: var(--ink);
+  font-size: 13px; font-weight: 500; color: var(--ink); letter-spacing: -0.01em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.note-meta { display: flex; gap: 7px; font-size: 12px; margin-top: 2px; }
+.note-meta { display: flex; gap: 7px; font-size: 11.5px; margin-top: 1px; }
 .note-date { color: var(--ink-soft); flex: none; }
 .note-sub { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .note-dirty { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; }
@@ -302,9 +302,9 @@ body {
 }
 
 /* ================= Rendered prose (.papery, from Rust renderer) ============= */
-#preview.papery { max-width: 720px; margin: 0 auto; padding: 46px 46px 44vh; }
+#preview.papery { max-width: 900px; margin: 0 auto; padding: 40px 56px 44vh; }
 /* Reading mode gets nearly the full pane width (split stays a comfy measure). */
-#surface.mode-reading #preview.papery { max-width: min(1180px, 92%); padding-left: 5%; padding-right: 5%; }
+#surface.mode-reading #preview.papery { max-width: min(1500px, 96%); padding-left: 3%; padding-right: 3%; }
 
 /* WYSIWYG: the whole preview is contenteditable. */
 #preview.papery[contenteditable="true"] { outline: none; min-height: 60vh; cursor: text; }
