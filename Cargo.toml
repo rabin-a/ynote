@@ -1,0 +1,51 @@
+# papery workspace
+# Single self-contained toolchain: shared core + thin CLI/MCP/app adapters.
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/cli",
+    "crates/mcp",
+    "crates/app",
+]
+# The Tauri desktop app (crates/app) is added to the workspace once its
+# frontend is scaffolded; kept out here so the backend builds fast on its own.
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Rabin Acharya"]
+repository = "https://github.com/rabin-a/papery"
+
+[workspace.dependencies]
+# --- core-internal deps shared across crates ---
+papery-core = { path = "crates/core" }
+
+# markdown + rendering
+comrak = "0.53"
+syntect = { version = "5.3", default-features = false, features = ["default-fancy"] }
+
+# config / data
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+toml = "0.8"
+
+# errors / utils
+thiserror = "2"
+anyhow = "1"
+base64 = "0.22"
+ignore = "0.4"
+
+# cli
+clap = { version = "4", features = ["derive"] }
+notify = "8"
+
+# async / mcp
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "sync"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+strip = true

@@ -1,0 +1,18 @@
+[project]
+name = "papery Demo"
+exclude = ["drafts/**"]
+
+[render]
+theme = "default"
+syntax_theme = "github"
+math = true
+
+[export.pdf]
+template = "default"
+paper = "a4"
+margin = "2cm"
+font = "Inter"
+toc = true
+
+[export.docx]
+template = "default"

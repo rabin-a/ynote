@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>papery</title>
+    <link rel="stylesheet" href="fonts.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Title bar -->
+      <header id="titlebar" data-tauri-drag-region>
+        <div class="tb-native-gap"></div>
+        <div class="tb-brand">
+          <span class="logo"><span class="logo-mark"></span></span>
+          <span class="brand-project" id="project-name">—</span>
+        </div>
+        <div class="tb-spacer"></div>
+        <div class="export-wrap">
+          <button id="btn-export" class="export-btn">
+            <span class="ico-export"></span>
+            Export
+            <span class="caret">▾</span>
+          </button>
+          <div id="export-menu" class="export-menu" hidden>
+            <div class="export-head">Export current file</div>
+            <div class="export-opt" data-fmt="pdf">
+              <span class="badge badge-pdf">PDF</span>
+              <span class="opt-text"><b>PDF</b><small>Typst · a4</small></span>
+            </div>
+            <div class="export-opt" data-fmt="docx">
+              <span class="badge badge-docx">DOCX</span>
+              <span class="opt-text"><b>Word</b><small>.docx · native styles</small></span>
+            </div>
+            <div class="export-opt" data-fmt="html">
+              <span class="badge badge-html">HTML</span>
+              <span class="opt-text"><b>HTML</b><small>standalone · inlined</small></span>
+            </div>
+            <label class="export-toggle">
+              <input type="checkbox" id="toc-toggle" checked />
+              <span>Include outline (PDF)</span>
+            </label>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main -->
+      <div id="main">
+        <aside id="sidebar">
+          <div class="side-head">
+            <span>Files</span>
+            <button id="btn-new-group" title="New group (folder)">⊞</button>
+            <button id="btn-new" title="New file (Cmd+N)">+</button>
+          </div>
+          <div id="new-file" class="new-file" hidden>
+            <input id="new-name" placeholder="new group name" spellcheck="false" />
+            <div class="new-hint">↵ create group · esc cancel</div>
+          </div>
+          <div id="file-tree"></div>
+
+          <div id="outline-section" hidden>
+            <div class="side-head side-head-sub"><span>On this page</span></div>
+            <div id="outline-list"></div>
+          </div>
+        </aside>
+
+        <section id="center">
+          <div id="tabbar">
+            <span id="active-path" class="mono">—</span>
+            <div class="tab-spacer"></div>
+            <div id="view-toggle" class="seg">
+              <button data-view="source" title="Source">Source</button>
+              <button data-view="split" class="active" title="Split">Split</button>
+              <button data-view="reading" title="Reading">Reading</button>
+            </div>
+          </div>
+
+          <div id="surface" class="mode-split">
+            <div id="editor-wrap">
+              <textarea id="editor" spellcheck="false" placeholder="Start writing…"></textarea>
+            </div>
+            <div id="preview-wrap">
+              <style id="preview-style"></style>
+              <div id="preview-scroll">
+                <div id="preview" class="papery"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Status bar -->
+      <footer id="statusbar">
+        <span id="btn-toggle-tree" class="sb-btn">☰ files</span>
+        <span class="sb-dot">·</span>
+        <span id="stat-words">0 words</span>
+        <span class="sb-dot">·</span>
+        <span id="stat-read">1 min read</span>
+        <div class="sb-spacer"></div>
+        <span id="save-label" class="save-label">Ready</span>
+        <span class="sb-dot">·</span>
+        <span>Markdown · UTF-8</span>
+      </footer>
+
+      <div id="toast" class="toast" hidden><span class="toast-check">✓</span><span id="toast-text"></span></div>
+    </div>
+
+    <script src="main.js"></script>
+  </body>
+</html>

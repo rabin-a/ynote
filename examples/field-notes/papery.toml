@@ -1,0 +1,14 @@
+[project]
+name = "field-notes"
+exclude = ["drafts/**"]
+
+[render]
+theme = "editorial"
+syntax_theme = "github"
+math = true
+
+[export.pdf]
+paper = "a4"
+margin = "2.5cm"
+font = "Newsreader"
+toc = true

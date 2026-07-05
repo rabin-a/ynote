@@ -1,0 +1,40 @@
+[package]
+name = "papery-core"
+description = "papery core: markdown parsing, one shared renderer, and HTML/PDF/DOCX export"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+comrak.workspace = true
+syntect.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+toml.workspace = true
+thiserror.workspace = true
+base64.workspace = true
+ignore.workspace = true
+
+# PDF export (Typst, in-process) and DOCX export are enabled once their
+# modules land — see the `pdf` / `docx` features. Kept off the default build
+# so the HTML pipeline iterates without compiling the Typst dependency tree.
+typst = { version = "0.15.0", optional = true }
+typst-pdf = { version = "0.15.0", optional = true }
+typst-library = { version = "0.15.0", optional = true }
+typst-layout = { version = "0.15.0", optional = true }
+typst-assets = { version = "0.15.0", features = ["fonts"], optional = true }
+comemo = { version = "0.5.1", optional = true }
+ecow = { version = "=0.2.6", optional = true }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp"], optional = true }
+docx-rs = { version = "0.4.20", optional = true }
+
+[features]
+# Default keeps the HTML pipeline light; adapters opt into export backends.
+default = []
+pdf = ["dep:typst", "dep:typst-pdf", "dep:typst-library", "dep:typst-layout", "dep:typst-assets", "dep:comemo", "dep:ecow", "dep:image"]
+docx = ["dep:docx-rs"]
+
+[dev-dependencies]
+insta = { version = "1", features = ["glob"] }

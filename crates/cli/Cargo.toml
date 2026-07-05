@@ -1,0 +1,19 @@
+[package]
+name = "papery-cli"
+description = "papery command-line interface"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "papery"
+path = "src/main.rs"
+
+[dependencies]
+papery-core = { workspace = true, features = ["pdf", "docx"] }
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+notify.workspace = true
+anyhow.workspace = true

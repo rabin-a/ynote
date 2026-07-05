@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Format + lint are OS-independent; run once.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: rustfmt
+        run: cargo fmt --all -- --check
+      - name: clippy (core + cli + mcp)
+        run: >
+          cargo clippy -p papery-core -p papery-cli -p papery-mcp
+          --all-targets --features "papery-core/pdf papery-core/docx" -- -D warnings
+
+  # Core/CLI/MCP tests + a fixtures smoke export on every OS.
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Test core (all export backends)
+        run: cargo test -p papery-core --features "pdf docx"
+      - name: Test CLI + MCP
+        run: cargo test -p papery-cli -p papery-mcp
+      - name: Smoke export the fixtures (pdf/docx/html)
+        shell: bash
+        run: |
+          cargo build -p papery-cli
+          BIN=$(find target/debug -maxdepth 1 -name 'papery*' -type f | head -1)
+          P=tests/fixtures/project
+          "$BIN" --project "$P" export kitchen-sink.md --format pdf  -o out/ks.pdf
+          "$BIN" --project "$P" export kitchen-sink.md --format docx -o out/ks.docx
+          "$BIN" --project "$P" export kitchen-sink.md --format html -o out/ks.html
+          test -s out/ks.pdf && test -s out/ks.docx && test -s out/ks.html
+
+  # The desktop app needs platform webview libraries; build it separately.
+  app:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install Linux webview deps
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - name: Build desktop app
+        run: cargo build -p papery-app

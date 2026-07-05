@@ -1,0 +1,23 @@
+# Rust
+/target
+**/*.rs.bk
+*.pdb
+
+# Tauri generated
+crates/app/gen/
+
+# Node (future frontend tooling)
+node_modules/
+dist/
+
+# Editor session tooling
+.evoride/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Local scratch
+/scratch
