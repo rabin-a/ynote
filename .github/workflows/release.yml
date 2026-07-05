@@ -1,0 +1,63 @@
+name: release
+
+# Push a version tag (e.g. v0.1.0) to build papery for macOS, Linux, and
+# Windows and attach the installers to a GitHub Release for that tag.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
+            rust-targets: "aarch64-apple-darwin,x86_64-apple-darwin"
+          - platform: ubuntu-latest
+            args: ""
+            rust-targets: ""
+          - platform: windows-latest
+            args: ""
+            rust-targets: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Linux webview deps
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libxdo-dev libssl-dev build-essential
+
+      - name: Build & release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: crates/app
+          tagName: ${{ github.ref_name }}
+          releaseName: "papery ${{ github.ref_name }}"
+          releaseBody: |
+            papery — a project-based markdown editor, previewer, and exporter.
+
+            **Install (macOS / Linux):**
+            ```
+            curl -fsSL https://raw.githubusercontent.com/rabin-a/papery/main/install.sh | bash
+            ```
+
+            Downloads below: macOS universal `.dmg`, Linux `.AppImage`/`.deb`, Windows `.msi`.
+            The macOS and Windows builds aren't code-signed/notarized yet — the install
+            script clears the macOS quarantine for you.
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
