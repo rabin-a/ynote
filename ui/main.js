@@ -331,16 +331,23 @@ function hideExportMenu() {
 
 // -------------------------------------------------- new file / new group ---
 
-// A unique `untitled.md` path within `folder` (or the root when null).
+// A date-stamped filename like 2026-07-05-1430.md — unique and easy to find on
+// disk (the list still shows the note's title, derived from its first line).
+function dateStamp() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+}
 function uniqueUntitled(folder) {
   const prefix = folder ? folder.replace(/\/+$/, "") + "/" : "";
   const existing = new Set(state.docs.map((d) => d.path));
-  let n = 0;
-  let name;
-  do {
-    name = `${prefix}untitled${n ? "-" + n : ""}.md`;
+  const base = dateStamp();
+  let name = `${prefix}${base}.md`;
+  let n = 1;
+  while (existing.has(name)) {
+    name = `${prefix}${base}-${n}.md`;
     n++;
-  } while (existing.has(name));
+  }
   return name;
 }
 
@@ -640,6 +647,28 @@ function setupPreviewEditing() {
   const preview = $("#preview");
   preview.addEventListener("input", () => {
     state.editing = true;
+    syncFromPreview();
+  });
+  // Delete a whole block: Backspace/Delete on an emptied block (e.g. a heading
+  // whose text you cleared) removes it and moves the caret to the neighbour.
+  preview.addEventListener("keydown", (e) => {
+    if (preview.contentEditable !== "true") return;
+    if (e.key !== "Backspace" && e.key !== "Delete") return;
+    const sel = window.getSelection();
+    if (!sel || !sel.isCollapsed) return; // let the browser handle real selections
+    const block = topBlock();
+    if (!block || block.textContent.trim()) return; // only when the block is empty
+    e.preventDefault();
+    const neighbour =
+      e.key === "Backspace" ? block.previousElementSibling : block.nextElementSibling;
+    block.remove();
+    state.editing = true;
+    if (neighbour) {
+      placeCaretEnd(neighbour);
+    } else {
+      preview.innerHTML = "";
+      preview.focus();
+    }
     syncFromPreview();
   });
   preview.addEventListener("focusout", (e) => {
