@@ -406,6 +406,10 @@ function uniqueUntitled(folder) {
   return name;
 }
 
+// A simple starter so a new note isn't a blank page — the user just edits it.
+const NEW_NOTE_TITLE = "New note";
+const NEW_NOTE_TEMPLATE = `# ${NEW_NOTE_TITLE}\n\nStart writing here…\n`;
+
 // Focus the active editing surface: the preview (WYSIWYG) in reading mode,
 // otherwise the source textarea.
 function focusEditSurface() {
@@ -418,16 +422,37 @@ function focusEditSurface() {
   }
 }
 
+// After creating a note, select the title so typing immediately replaces it.
+function focusNewNote() {
+  if (state.view === "reading") {
+    const preview = $("#preview");
+    preview.focus();
+    const first = preview.firstElementChild;
+    if (first) {
+      const r = document.createRange();
+      r.selectNodeContents(first);
+      const s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(r);
+    }
+  } else {
+    const ed = $("#editor");
+    ed.focus();
+    const i = state.content.indexOf(NEW_NOTE_TITLE);
+    if (i >= 0) ed.setSelectionRange(i, i + NEW_NOTE_TITLE.length);
+  }
+}
+
 async function newUntitledFile(folder) {
   if (!state.root) return;
   const name = uniqueUntitled(folder);
   try {
-    // Blank canvas — write an empty file so it's ready to type into.
-    await invoke("write_file", { root: state.root, path: name, content: "" });
+    // Seed a simple starter note so it's ready to edit, not a blank page.
+    await invoke("write_file", { root: state.root, path: name, content: NEW_NOTE_TEMPLATE });
     state.docs = await invoke("list_docs", { root: state.root });
     renderTree();
     await openFile(name);
-    focusEditSurface();
+    focusNewNote();
   } catch (e) {
     setSave("Create failed: " + e, "dirty");
   }
