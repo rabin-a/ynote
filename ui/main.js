@@ -94,6 +94,7 @@ function renderTree() {
       const h = document.createElement("div");
       h.className = "folder-head";
       h.innerHTML = `<span class="chev">▼</span>${escapeHtml(g.folder)}`;
+      makeDropTarget(h, g.folder); // drop a file here to move it into this group
       tree.appendChild(h);
     }
     for (const path of g.files) {
@@ -104,10 +105,16 @@ function renderTree() {
         `<span class="file-name" title="${escapeHtml(path)}">${escapeHtml(labelOf(path))}</span>` +
         (state.dirty.has(path) ? `<span class="file-dirty"></span>` : "");
       row.onclick = () => openFile(path);
-      // Double-click the name to rename inline (not the project config file).
       if (path !== "papery.toml") {
+        // Drag a file onto a group header (or "Files") to move it.
+        row.draggable = true;
+        row.addEventListener("dragstart", (e) => {
+          e.dataTransfer.setData("text/plain", path);
+          e.dataTransfer.effectAllowed = "move";
+        });
+        // Double-click the name to rename inline.
         const nameEl = row.querySelector(".file-name");
-        nameEl.title = "Double-click to rename";
+        nameEl.title = "Double-click to rename · drag to move";
         nameEl.ondblclick = (e) => {
           e.stopPropagation();
           beginRename(path, nameEl);
@@ -490,6 +497,47 @@ async function commitRename(oldPath, value) {
   }
 }
 
+// Make an element a drop target that moves the dropped file into `folder`
+// (null = project root).
+function makeDropTarget(el, folder) {
+  el.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    el.classList.add("drop-target");
+  });
+  el.addEventListener("dragleave", () => el.classList.remove("drop-target"));
+  el.addEventListener("drop", (e) => {
+    e.preventDefault();
+    el.classList.remove("drop-target");
+    moveFile(e.dataTransfer.getData("text/plain"), folder);
+  });
+}
+
+async function moveFile(path, folder) {
+  if (!path || path === "papery.toml") return;
+  const base = path.split("/").pop();
+  const to = folder ? `${folder}/${base}` : base;
+  if (to === path) return;
+  if (state.docs.some((d) => d.path === to)) {
+    setSave("A note with that name already exists in that group", "dirty");
+    return;
+  }
+  try {
+    if (state.file === path && state.dirty.has(path)) await save();
+    await invoke("rename_file", { root: state.root, from: path, to });
+    if (state.file === path) {
+      state.file = to;
+      $("#active-path").textContent = to;
+    }
+    state.dirty.delete(path);
+    state.docs = await invoke("list_docs", { root: state.root });
+    renderTree();
+    setSave("Moved to " + (folder || "Files"), "saved");
+  } catch (e) {
+    setSave("Move failed: " + e, "dirty");
+  }
+}
+
 // -------------------------------------------------------------- view/keys ---
 
 function setView(view) {
@@ -747,6 +795,7 @@ function wire() {
 
   $("#btn-new").onclick = () => showNew("file");
   $("#btn-new-group").onclick = () => showNew("group");
+  makeDropTarget($("#files-head"), null); // drop here to move a note to the root
   $("#new-name").addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
