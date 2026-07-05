@@ -40,8 +40,9 @@ pub struct RenderOptions {
     pub root: Option<PathBuf>,
     /// Document title for `<title>` (falls back to front matter / first H1).
     pub title: Option<String>,
-    /// Wrap each top-level block in an editable `<div class="pv-block">` carrying
-    /// its source byte range (`data-bs`/`data-be`), for in-preview WYSIWYG editing.
+    /// Editing mode for in-preview WYSIWYG: keeps each image's original URL in
+    /// `data-osrc` (alongside the base64 `src`) so the editor serializes the
+    /// original path back to markdown instead of the inlined data URI.
     pub preview_edit: bool,
 }
 
@@ -119,24 +120,7 @@ pub fn render_html(source: &str, opts: &RenderOptions) -> Result<String> {
 
     let mut w = Writer::new(opts);
     w.index_footnotes(root);
-    if opts.preview_edit {
-        let line_offsets = line_start_offsets(source);
-        for child in root.children() {
-            if matches!(child.data.borrow().value, NodeValue::FrontMatter(_)) {
-                continue;
-            }
-            let (bs, be) = node_byte_range(child, &line_offsets, source.len());
-            let start = w.out.len();
-            w.node(child);
-            let block_html = w.out.split_off(start);
-            w.out.push_str(&format!(
-                "<div class=\"pv-block\" data-bs=\"{bs}\" data-be=\"{be}\" contenteditable=\"true\">{}</div>\n",
-                block_html.trim_end()
-            ));
-        }
-    } else {
-        w.children(root);
-    }
+    w.children(root);
     let body = w.out;
 
     if opts.standalone {
@@ -144,28 +128,6 @@ pub fn render_html(source: &str, opts: &RenderOptions) -> Result<String> {
     } else {
         Ok(format!("<div class=\"papery\">\n{body}</div>\n"))
     }
-}
-
-/// Byte offset at which each line begins (line 1 at index 0).
-fn line_start_offsets(source: &str) -> Vec<usize> {
-    let mut offsets = vec![0usize];
-    for (i, b) in source.bytes().enumerate() {
-        if b == b'\n' {
-            offsets.push(i + 1);
-        }
-    }
-    offsets
-}
-
-/// Source byte range `[start, end)` for a top-level block node, from its
-/// comrak sourcepos (1-based line + 1-based inclusive byte column).
-fn node_byte_range(node: &AstNode<'_>, line_offsets: &[usize], src_len: usize) -> (usize, usize) {
-    let d = node.data.borrow();
-    let sp = d.sourcepos;
-    let line_off = |line: usize| line_offsets.get(line.saturating_sub(1)).copied();
-    let start = line_off(sp.start.line).unwrap_or(0) + sp.start.column.saturating_sub(1);
-    let end = line_off(sp.end.line).unwrap_or(src_len) + sp.end.column;
-    (start.min(src_len), end.min(src_len))
 }
 
 /// syntect CSS for a theme name (class-based). Exposed so the desktop app can

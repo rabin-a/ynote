@@ -18,7 +18,7 @@ const state = {
   view: "split",
   renaming: false, // suppress tree rebuilds while an inline rename is active
   newMode: "file", // "file" | "group" for the inline new-item input
-  editCtx: null, // active in-preview block edit (source splice context)
+  editing: false, // actively typing in the WYSIWYG preview
   renderTimer: null,
   saveTimer: null,
   toastTimer: null,
@@ -165,10 +165,11 @@ function onEdit() {
 
 async function renderPreview() {
   if (!state.root || !state.file) return;
-  if (state.editCtx) return; // don't clobber an in-progress in-preview edit
+  if (state.editing) return; // never clobber an in-progress WYSIWYG edit
   const isMd = state.file.endsWith(".md");
   const preview = $("#preview");
   if (!isMd) {
+    preview.contentEditable = "false";
     preview.innerHTML = `<pre class="mdcode"><code>${escapeHtml(state.content)}</code></pre>`;
     $("#outline-section").hidden = true;
     return;
@@ -183,7 +184,8 @@ async function renderPreview() {
     const tmp = document.createElement("div");
     tmp.innerHTML = html;
     const inner = tmp.querySelector(".papery");
-    preview.innerHTML = inner ? inner.innerHTML : html;
+    preview.innerHTML = (inner ? inner.innerHTML : html).trim(); // trim so :empty shows placeholder
+    preview.contentEditable = "true"; // edit directly in the preview
     $("#preview-scroll").scrollTop = scroll;
     await refreshOutline();
     updateActiveHeading();
@@ -342,6 +344,18 @@ function uniqueUntitled(folder) {
   return name;
 }
 
+// Focus the active editing surface: the preview (WYSIWYG) in reading mode,
+// otherwise the source textarea.
+function focusEditSurface() {
+  if (state.view === "reading") {
+    const p = $("#preview");
+    p.focus();
+    placeCaretEnd(p);
+  } else {
+    $("#editor").focus();
+  }
+}
+
 async function newUntitledFile(folder) {
   if (!state.root) return;
   const name = uniqueUntitled(folder);
@@ -351,10 +365,7 @@ async function newUntitledFile(folder) {
     state.docs = await invoke("list_docs", { root: state.root });
     renderTree();
     await openFile(name);
-    setView(state.view === "reading" ? "split" : state.view);
-    const ed = $("#editor");
-    ed.focus();
-    ed.setSelectionRange(0, 0);
+    focusEditSurface();
   } catch (e) {
     setSave("Create failed: " + e, "dirty");
   }
@@ -401,8 +412,7 @@ async function newNamedFile(name) {
     state.docs = await invoke("list_docs", { root: state.root });
     renderTree();
     await openFile(name);
-    setView(state.view === "reading" ? "split" : state.view);
-    $("#editor").focus();
+    focusEditSurface();
   } catch (e) {
     setSave("Create failed: " + e, "dirty");
   }
@@ -505,13 +515,11 @@ function cssEscape(s) {
 
 // ------------------------------------------------ edit directly in preview ---
 //
-// The preview is the Rust-rendered HTML; in edit mode each top-level block is a
-// contenteditable wrapper tagged with its source byte range (data-bs/data-be).
-// Editing a block serializes just that block back to markdown and splices it
-// into the source, so front matter and untouched blocks are preserved exactly.
-
-const _enc = new TextEncoder();
-const _dec = new TextDecoder();
+// WYSIWYG: the whole preview is contenteditable. On each edit the rendered DOM
+// is serialized back to markdown (front matter preserved verbatim) and saved.
+// The preview is never re-rendered mid-edit, so edits can't be overridden; a
+// fresh render (which applies markdown formatting like "# " → heading) runs
+// only when you leave the editor. The toolbar changes the current block's type.
 
 function serializeInline(node) {
   let out = "";
@@ -592,69 +600,105 @@ function serializeBlock(el) {
   return serializeInline(el).trim();
 }
 
-function blockToMarkdown(wrapper) {
-  const el = wrapper.firstElementChild || wrapper;
-  return serializeBlock(el).replace(/\n{3,}/g, "\n\n").trim();
+// Front matter of the current doc, preserved verbatim (not shown in preview).
+function docFrontMatter() {
+  const m = state.content.match(/^﻿?---\n[\s\S]*?\n---\n?/);
+  return m ? m[0] : "";
+}
+
+// Serialize the whole editable preview back to markdown. Every top-level child
+// is a block, so anything the user adds (new paragraphs, headings, …) is kept.
+function serializeBody(container) {
+  const parts = [];
+  container.childNodes.forEach((node) => {
+    if (node.nodeType === 3) {
+      const t = node.nodeValue.replace(/\s+/g, " ").trim();
+      if (t) parts.push(t);
+      return;
+    }
+    if (node.nodeType !== 1) return;
+    const md = serializeBlock(node);
+    if (md.trim()) parts.push(md.trim());
+  });
+  const body = parts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+  return body ? body + "\n" : "";
+}
+
+function syncFromPreview() {
+  const preview = $("#preview");
+  if (preview.contentEditable !== "true") return;
+  state.content = docFrontMatter() + serializeBody(preview);
+  if (state.file) state.dirty.add(state.file);
+  $("#editor").value = state.content; // keep the source view in sync (no input event)
+  setSave("Editing…", "dirty");
+  updateStats();
+  clearTimeout(state.saveTimer);
+  state.saveTimer = setTimeout(save, 900);
 }
 
 function setupPreviewEditing() {
   const preview = $("#preview");
-
-  preview.addEventListener("focusin", (e) => {
-    const block = e.target.closest(".pv-block");
-    if (!block) return;
-    const bs = +block.dataset.bs;
-    const be = +block.dataset.be;
-    const bytes = _enc.encode(state.content);
-    state.editCtx = {
-      block,
-      bs,
-      before: _dec.decode(bytes.slice(0, bs)),
-      after: _dec.decode(bytes.slice(be)),
-      origLen: be - bs,
-    };
+  preview.addEventListener("input", () => {
+    state.editing = true;
+    syncFromPreview();
   });
-
-  preview.addEventListener("input", (e) => {
-    const ctx = state.editCtx;
-    if (!ctx || !ctx.block.contains(e.target)) return;
-    const md = blockToMarkdown(ctx.block);
-    state.content = ctx.before + md + ctx.after;
-    if (state.file) state.dirty.add(state.file);
-    $("#editor").value = state.content; // keep source view in sync (no input event)
-    ctx.block.dataset.be = ctx.bs + _enc.encode(md).length;
-    setSave("Editing…", "dirty");
-    updateStats();
-    clearTimeout(state.saveTimer);
-    state.saveTimer = setTimeout(save, 900);
-  });
-
   preview.addEventListener("focusout", (e) => {
-    const ctx = state.editCtx;
-    if (!ctx) return;
-    // Shift following blocks' offsets by this edit's byte delta so the next
-    // block edited splices at the right place (no full re-render needed).
-    const delta = _enc.encode(blockToMarkdown(ctx.block)).length - ctx.origLen;
-    if (delta !== 0) {
-      let sib = ctx.block.nextElementSibling;
-      while (sib) {
-        if (sib.classList && sib.classList.contains("pv-block")) {
-          sib.dataset.bs = +sib.dataset.bs + delta;
-          sib.dataset.be = +sib.dataset.be + delta;
-        }
-        sib = sib.nextElementSibling;
-      }
-    }
-    state.editCtx = null;
-    // Left the preview entirely → normalize with a fresh render.
-    const to = e.relatedTarget;
-    if (!to || !preview.contains(to)) {
-      clearTimeout(state.normalizeTimer);
-      state.normalizeTimer = setTimeout(() => {
-        if (!state.editCtx) renderPreview();
-      }, 300);
-    }
+    if (e.relatedTarget && preview.contains(e.relatedTarget)) return; // still inside
+    state.editing = false;
+    // Re-render once you leave the editor: applies markdown formatting and
+    // normalizes the HTML. Focus already left, so there's no caret to disturb.
+    clearTimeout(state.normalizeTimer);
+    state.normalizeTimer = setTimeout(() => {
+      if (!state.editing) renderPreview();
+    }, 200);
   });
+}
+
+// ---- block formatting toolbar (add a title / change block type) ----
+function topBlock() {
+  const preview = $("#preview");
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return null;
+  let n = sel.anchorNode;
+  if (n && n.nodeType === 3) n = n.parentElement;
+  if (!n || !preview.contains(n)) return null;
+  while (n.parentElement && n.parentElement !== preview) n = n.parentElement;
+  return n.parentElement === preview ? n : null;
+}
+function placeCaretEnd(el) {
+  const r = document.createRange();
+  r.selectNodeContents(el);
+  r.collapse(false);
+  const s = window.getSelection();
+  s.removeAllRanges();
+  s.addRange(r);
+}
+function formatBlock(fmt) {
+  const preview = $("#preview");
+  if (preview.contentEditable !== "true") return;
+  const block = topBlock();
+  const text = block ? block.textContent : "";
+  let el;
+  if (fmt === "ul" || fmt === "ol") {
+    el = document.createElement(fmt);
+    const li = document.createElement("li");
+    li.textContent = text;
+    el.appendChild(li);
+  } else if (fmt === "pre") {
+    el = document.createElement("pre");
+    el.className = "mdcode";
+    const code = document.createElement("code");
+    code.textContent = text;
+    el.appendChild(code);
+  } else {
+    el = document.createElement(fmt);
+    el.textContent = text;
+  }
+  if (block) block.replaceWith(el);
+  else preview.appendChild(el);
+  placeCaretEnd(el.querySelector("li,code") || el);
+  state.editing = true;
+  syncFromPreview();
 }
 
 // ------------------------------------------------------------------- wire ---
@@ -697,6 +741,11 @@ function wire() {
   document.querySelectorAll("#view-toggle button").forEach((b) => {
     b.onclick = () => setView(b.dataset.view);
   });
+  document.querySelectorAll("#format-bar button").forEach((b) => {
+    // preventDefault on mousedown keeps the caret in the contenteditable.
+    b.addEventListener("mousedown", (e) => e.preventDefault());
+    b.onclick = () => formatBlock(b.dataset.fmt);
+  });
   $("#btn-toggle-tree").onclick = toggleSidebar;
 
   document.addEventListener("keydown", (e) => {
@@ -723,7 +772,7 @@ function wire() {
 }
 
 wire();
-setView("split");
+setView("reading"); // default: work directly in the preview (WYSIWYG)
 
 (async () => {
   try {
