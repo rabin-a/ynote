@@ -43,12 +43,12 @@ jobs:
       - name: Smoke export the fixtures (pdf/docx/html)
         shell: bash
         run: |
-          cargo build -p papery-cli
-          BIN=$(find target/debug -maxdepth 1 -name 'papery*' -type f | head -1)
           P=tests/fixtures/project
-          "$BIN" --project "$P" export kitchen-sink.md --format pdf  -o out/ks.pdf
-          "$BIN" --project "$P" export kitchen-sink.md --format docx -o out/ks.docx
-          "$BIN" --project "$P" export kitchen-sink.md --format html -o out/ks.html
+          mkdir -p out
+          # `cargo run` invokes the right binary on every OS (no path guessing).
+          cargo run -q -p papery-cli -- --project "$P" export kitchen-sink.md --format pdf  -o out/ks.pdf
+          cargo run -q -p papery-cli -- --project "$P" export kitchen-sink.md --format docx -o out/ks.docx
+          cargo run -q -p papery-cli -- --project "$P" export kitchen-sink.md --format html -o out/ks.html
           test -s out/ks.pdf && test -s out/ks.docx && test -s out/ks.html
 
   # The desktop app needs platform webview libraries; build it separately.

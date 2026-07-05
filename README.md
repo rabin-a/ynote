@@ -18,11 +18,17 @@
 - **Zero runtime deps.** PDF is produced in-process with embedded Typst — no Pandoc, LaTeX, or headless Chrome. Themes, template, and fonts are baked into the binary.
 - **Project = folder.** A project is a directory of `.md` files plus an optional `papery.toml`. No database, no lock-in — git-friendly and agent-editable.
 
-## Download (macOS)
+## Install (macOS)
 
-Grab the latest `.dmg` from the [**Releases**](https://github.com/rabin-a/papery/releases/latest) page. It's a **universal** build (Apple Silicon + Intel).
+One line in Terminal — downloads the latest build, installs it to `/Applications`, and launches it:
 
-> The app isn't code-signed yet, so on first launch macOS Gatekeeper will block it. Right-click **papery.app → Open** and confirm, or run `xattr -cr /Applications/papery.app` after moving it to Applications.
+```sh
+curl -fsSL https://raw.githubusercontent.com/rabin-a/papery/main/install.sh | bash
+```
+
+Or download the `.dmg` from [**Releases**](https://github.com/rabin-a/papery/releases/latest) manually. Either way it's a **universal** build (Apple Silicon + Intel).
+
+> The app isn't code-signed/notarized yet. The install script clears the Gatekeeper quarantine for you; if you install the `.dmg` manually instead, right-click **papery.app → Open** on first launch, or run `xattr -cr /Applications/papery.app`.
 
 The desktop app opens straight into a local workspace (defaults to a cloud-synced folder — iCloud Drive `papery`, else `~/Documents/papery`) — no setup, no accounts. `Cmd+N` starts a new file, `⊞` a new group, double-click a filename to rename, and everything autosaves.
 
