@@ -65,6 +65,22 @@ function labelOf(path) {
   return e && e.title ? e.title : "New note";
 }
 
+// Apple Notes-style date: time today, "Yesterday", weekday this week, else date.
+function formatDate(secs) {
+  if (!secs) return "";
+  const d = new Date(secs * 1000);
+  const now = new Date();
+  const day = 86400000;
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const t = d.getTime();
+  if (t >= startOfToday) return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (t >= startOfToday - day) return "Yesterday";
+  if (t >= startOfToday - 6 * day) return d.toLocaleDateString([], { weekday: "long" });
+  return d.getFullYear() === now.getFullYear()
+    ? d.toLocaleDateString([], { month: "short", day: "numeric" })
+    : d.toLocaleDateString([], { month: "numeric", day: "numeric", year: "2-digit" });
+}
+
 function groupDocs() {
   const all = state.docs.map((d) => d.path).slice();
   if (!all.includes("papery.toml")) all.push("papery.toml");
@@ -106,29 +122,36 @@ function renderTree() {
     for (const path of g.files) {
       const row = document.createElement("div");
       row.className = "file-row" + (path === state.file ? " active" : "");
-      row.innerHTML =
-        `<span class="file-dot ${dotClass(path)}"></span>` +
-        `<span class="file-name">${escapeHtml(labelOf(path))}</span>` +
-        (state.dirty.has(path) ? `<span class="file-dirty"></span>` : "");
+      const isConfig = path === "papery.toml";
+      const e = entryOf(path);
+      const dirty = state.dirty.has(path) ? '<span class="note-dirty"></span>' : "";
+      if (isConfig) {
+        row.innerHTML = `<div class="note-title">${escapeHtml(labelOf(path))}</div>`;
+      } else {
+        // Apple Notes card: title, then date · subtitle.
+        const date = formatDate(e && e.created);
+        const sub = e && e.subtitle ? e.subtitle : "No additional text";
+        row.innerHTML =
+          `<div class="note-title">${escapeHtml(labelOf(path))}${dirty}</div>` +
+          `<div class="note-meta"><span class="note-date">${escapeHtml(date)}</span>` +
+          `<span class="note-sub">${escapeHtml(sub)}</span></div>`;
+      }
       row.onclick = () => openFile(path);
-      if (path !== "papery.toml") {
-        // Drag a file onto a group header (or "Files") to move it.
+      if (!isConfig) {
         row.draggable = true;
-        row.addEventListener("dragstart", (e) => {
-          e.dataTransfer.setData("text/plain", path);
-          e.dataTransfer.effectAllowed = "move";
+        row.addEventListener("dragstart", (ev) => {
+          ev.dataTransfer.setData("text/plain", path);
+          ev.dataTransfer.effectAllowed = "move";
         });
-        // Double-click the name to rename inline.
-        const nameEl = row.querySelector(".file-name");
-        nameEl.title = "Double-click to rename · drag to move · right-click for options";
-        nameEl.ondblclick = (e) => {
-          e.stopPropagation();
-          beginRename(path, nameEl);
+        const titleEl = row.querySelector(".note-title");
+        titleEl.ondblclick = (ev) => {
+          ev.stopPropagation();
+          beginRename(path, titleEl);
         };
-        row.addEventListener("contextmenu", (e) => {
-          e.preventDefault();
-          showCtxMenu(e.clientX, e.clientY, [
-            { label: "Rename", fn: () => beginRename(path, row.querySelector(".file-name")) },
+        row.addEventListener("contextmenu", (ev) => {
+          ev.preventDefault();
+          showCtxMenu(ev.clientX, ev.clientY, [
+            { label: "Rename", fn: () => beginRename(path, row.querySelector(".note-title")) },
             { label: "Delete", danger: true, fn: () => deleteFileAction(path) },
           ]);
         });

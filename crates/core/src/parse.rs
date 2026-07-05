@@ -146,6 +146,24 @@ pub fn display_title(source: &str) -> Option<String> {
     None
 }
 
+/// A one-line preview of the note's body *after* its title (Apple Notes
+/// subtitle). `None` when there's no additional text.
+pub fn display_subtitle(source: &str) -> Option<String> {
+    let markers = |c: char| "#>-*+ \t".contains(c);
+    let mut lines = strip_front_matter(source)
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty());
+    lines.next()?; // skip the title line
+    for line in lines {
+        let s = line.trim_start_matches(markers).trim();
+        if !s.is_empty() {
+            return Some(s.chars().take(90).collect());
+        }
+    }
+    None
+}
+
 /// Strip a leading `---` front matter block (for line-based title scanning).
 fn strip_front_matter(source: &str) -> &str {
     let s = source.strip_prefix('\u{feff}').unwrap_or(source);

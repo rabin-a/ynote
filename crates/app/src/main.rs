@@ -28,6 +28,8 @@ struct ProjectInfo {
 struct DocEntry {
     path: String,
     title: Option<String>,
+    /// One-line body preview shown under the title (Apple Notes subtitle).
+    subtitle: Option<String>,
     /// Creation time (unix seconds) for date-based sorting; falls back to the
     /// modified time when the filesystem doesn't expose a creation time.
     created: u64,
@@ -42,6 +44,9 @@ fn doc_entries(project: &Project) -> Result<Vec<DocEntry>, String> {
             let title = content
                 .as_deref()
                 .and_then(papery_core::parse::display_title);
+            let subtitle = content
+                .as_deref()
+                .and_then(papery_core::parse::display_subtitle);
             let created = project
                 .resolve_path(d)
                 .ok()
@@ -53,6 +58,7 @@ fn doc_entries(project: &Project) -> Result<Vec<DocEntry>, String> {
             DocEntry {
                 path: d.to_string_lossy().replace('\\', "/"),
                 title,
+                subtitle,
                 created,
             }
         })
@@ -155,11 +161,10 @@ fn render_preview(root: String, path: String, content: String) -> Result<String,
 #[tauri::command]
 fn preview_css(root: String) -> Result<String, String> {
     // `root` is accepted so the frontend's call shape stays uniform, but the
-    // app supplies its own bespoke prose theme (style.css); from core we only
-    // need the syntect token colors. A dark theme matches the design's dark
-    // code blocks.
+    // app supplies its own prose theme (style.css); from core we only need the
+    // syntect token colors. A light theme matches the light code blocks.
     let _ = root;
-    Ok(render_html::syntect_css("base16-ocean.dark"))
+    Ok(render_html::syntect_css("github"))
 }
 
 #[tauri::command]
