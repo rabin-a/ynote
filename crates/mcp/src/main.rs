@@ -1,4 +1,4 @@
-//! papery MCP server — a small, stable, typed tool surface over `papery-core`.
+//! ynote MCP server — a small, stable, typed tool surface over `ynote-core`.
 //!
 //! stdio transport (rmcp). Every tool is documented for an LLM consumer and
 //! every file operation goes through core's path-safety check, so no tool can
@@ -6,12 +6,11 @@
 //!
 //! Registration (e.g. Claude Code):
 //! ```json
-//! { "mcpServers": { "papery": { "command": "papery-mcp", "args": ["--project", "."] } } }
+//! { "mcpServers": { "ynote": { "command": "ynote-mcp", "args": ["--project", "."] } } }
 //! ```
 
 use std::path::{Path, PathBuf};
 
-use papery_core::{check, export, outline, section, Format, Project};
 use rmcp::{
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
     model::*,
@@ -19,12 +18,13 @@ use rmcp::{
     transport::stdio,
     ErrorData as McpError, ServerHandler, ServiceExt,
 };
+use ynote_core::{check, export, outline, section, Format, Project};
 
 #[derive(Clone)]
-struct PaperyServer {
+struct YNoteServer {
     root: PathBuf,
     #[allow(dead_code)] // read by macro-generated code
-    tool_router: ToolRouter<PaperyServer>,
+    tool_router: ToolRouter<YNoteServer>,
 }
 
 // ---- tool parameter types (field doc comments become JSON Schema docs) ----
@@ -79,7 +79,7 @@ struct ExportArgs {
 }
 
 #[tool_router]
-impl PaperyServer {
+impl YNoteServer {
     fn new(root: PathBuf) -> Self {
         Self {
             root,
@@ -103,7 +103,7 @@ impl PaperyServer {
                 let title = project
                     .read_document(d)
                     .ok()
-                    .and_then(|t| papery_core::parse::title_of(&t));
+                    .and_then(|t| ynote_core::parse::title_of(&t));
                 serde_json::json!({ "path": d.to_string_lossy(), "title": title })
             })
             .collect();
@@ -229,13 +229,13 @@ impl PaperyServer {
 }
 
 #[tool_handler]
-impl ServerHandler for PaperyServer {
+impl ServerHandler for YNoteServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
             .with_server_info(Implementation::from_build_env())
             .with_protocol_version(ProtocolVersion::V_2024_11_05)
             .with_instructions(
-                "papery exposes a folder of markdown files as a project. Use get_outline to \
+                "ynote exposes a folder of markdown files as a project. Use get_outline to \
                  navigate, read_document (with heading_slug) to read a section, and edit_section \
                  rather than write_document for targeted edits to long documents. render_html and \
                  export use the same shared renderer, so preview and export match. All paths are \
@@ -244,7 +244,7 @@ impl ServerHandler for PaperyServer {
     }
 }
 
-fn core_err(e: papery_core::Error) -> McpError {
+fn core_err(e: ynote_core::Error) -> McpError {
     McpError::internal_error(e.to_string(), None)
 }
 
@@ -274,10 +274,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Validate the project root up front; a clear stderr message beats a
     // confusing handshake failure.
     if let Err(e) = Project::open(&root) {
-        eprintln!("papery-mcp: cannot open project at {}: {e}", root.display());
+        eprintln!("ynote-mcp: cannot open project at {}: {e}", root.display());
         std::process::exit(2);
     }
-    let service = PaperyServer::new(root).serve(stdio()).await?;
+    let service = YNoteServer::new(root).serve(stdio()).await?;
     service.waiting().await?;
     Ok(())
 }

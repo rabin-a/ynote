@@ -3,16 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>papery — a project-based markdown editor</title>
+<title>YNote — a project-based markdown editor</title>
 <meta name="description" content="A project-based markdown editor, previewer, and exporter. One shared Rust renderer for a desktop app, a CLI, and an MCP server." />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet" />
 <style>
   :root{
     --paper:#efe9df; --paper2:#e7e0d4; --ink:#2b2621; --ink-strong:#241f1a;
     --muted:#8a8072; --border:#d5ccbd; --accent:#c0503f;
-    --sans:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace; --serif:'Newsreader',Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif; --mono:ui-monospace,'SF Mono',Menlo,monospace; --serif:var(--sans);
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;}
@@ -46,15 +43,15 @@
 <div class="wrap">
   <header>
     <span class="logo"><span class="sheet"></span></span>
-    <h1>papery</h1>
+    <h1>YNote</h1>
     <p class="tag">A project-based markdown editor, previewer, and exporter. One shared renderer, so the preview <em>is</em> the document.</p>
     <div class="cta">
-      <a class="btn btn-primary" href="https://github.com/rabin-a/papery/releases/latest">Download</a>
-      <a class="btn btn-ghost" href="https://github.com/rabin-a/papery">View on GitHub</a>
+      <a class="btn btn-primary" href="https://github.com/rabin-a/ynote/releases/latest">Download</a>
+      <a class="btn btn-ghost" href="https://github.com/rabin-a/ynote">View on GitHub</a>
     </div>
     <p class="note">macOS (universal) · Linux (AppImage) · Windows (.msi) · not yet notarized.</p>
     <pre style="text-align:left;max-width:600px;margin:22px auto 0;font-size:13px;"><span class="c"># install from the Terminal — detects your OS (macOS / Linux)</span>
-curl -fsSL https://raw.githubusercontent.com/rabin-a/papery/main/install.sh | bash</pre>
+curl -fsSL https://raw.githubusercontent.com/rabin-a/ynote/main/install.sh | bash</pre>
   </header>
 
   <div class="feat">
@@ -64,19 +61,19 @@ curl -fsSL https://raw.githubusercontent.com/rabin-a/papery/main/install.sh | ba
   </div>
 
   <div class="section-title">Also a CLI</div>
-  <p style="margin:0 0 14px;color:#4a4239;">The same engine is a single binary, <code>papery</code>, so scripts and agents get identical output.</p>
+  <p style="margin:0 0 14px;color:#4a4239;">The same engine is a single binary, <code>ynote</code>, so scripts and agents get identical output.</p>
   <pre><span class="c"># render, export, batch, lint — the preview is the export</span>
-papery render notes.md -o notes.html
-papery export notes.md --format pdf -o notes.pdf
-papery export --all --format pdf -o dist/
-papery check</pre>
+ynote render notes.md -o notes.html
+ynote export notes.md --format pdf -o notes.pdf
+ynote export --all --format pdf -o dist/
+ynote check</pre>
 
   <div class="section-title">And an MCP server</div>
-  <p style="margin:0 0 14px;color:#4a4239;">Give an AI agent typed, path-safe access to a project with <code>papery-mcp</code>.</p>
-  <pre>{ "mcpServers": { "papery": { "command": "papery-mcp", "args": ["--project", "."] } } }</pre>
+  <p style="margin:0 0 14px;color:#4a4239;">Give an AI agent typed, path-safe access to a project with <code>ynote-mcp</code>.</p>
+  <pre>{ "mcpServers": { "ynote": { "command": "ynote-mcp", "args": ["--project", "."] } } }</pre>
 
   <footer>
-    Built with Rust + Tauri · <a href="https://github.com/rabin-a/papery">rabin-a/papery</a> · MIT
+    Built with Rust + Tauri · <a href="https://github.com/rabin-a/ynote">rabin-a/ynote</a> · MIT
   </footer>
 </div>
 </body>

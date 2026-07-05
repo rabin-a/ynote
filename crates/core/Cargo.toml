@@ -1,6 +1,6 @@
 [package]
-name = "papery-core"
-description = "papery core: markdown parsing, one shared renderer, and HTML/PDF/DOCX export"
+name = "ynote-core"
+description = "ynote core: markdown parsing, one shared renderer, and HTML/PDF/DOCX export"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

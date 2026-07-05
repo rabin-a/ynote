@@ -1,5 +1,5 @@
 [project]
-name = "papery Demo"
+name = "ynote Demo"
 exclude = ["drafts/**"]
 
 [render]

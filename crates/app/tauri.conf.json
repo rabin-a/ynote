@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "papery",
+  "productName": "YNote",
   "version": "0.1.0",
-  "identifier": "com.papery.desktop",
+  "identifier": "onl.ynote.desktop",
   "build": {
     "frontendDist": "../../ui"
   },
@@ -11,14 +11,14 @@
     "windows": [
       {
         "label": "main",
-        "title": "papery",
+        "title": "YNote",
         "width": 1280,
         "height": 820,
         "minWidth": 720,
         "minHeight": 480,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
-        "backgroundColor": "#efe9df"
+        "backgroundColor": "#ffffff"
       }
     ],
     "security": {

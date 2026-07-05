@@ -22,8 +22,8 @@ jobs:
         run: cargo fmt --all -- --check
       - name: clippy (core + cli + mcp)
         run: >
-          cargo clippy -p papery-core -p papery-cli -p papery-mcp
-          --all-targets --features "papery-core/pdf papery-core/docx" -- -D warnings
+          cargo clippy -p ynote-core -p ynote-cli -p ynote-mcp
+          --all-targets --features "ynote-core/pdf ynote-core/docx" -- -D warnings
 
   # Core/CLI/MCP tests + a fixtures smoke export on every OS.
   test:
@@ -37,18 +37,18 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Test core (all export backends)
-        run: cargo test -p papery-core --features "pdf docx"
+        run: cargo test -p ynote-core --features "pdf docx"
       - name: Test CLI + MCP
-        run: cargo test -p papery-cli -p papery-mcp
+        run: cargo test -p ynote-cli -p ynote-mcp
       - name: Smoke export the fixtures (pdf/docx/html)
         shell: bash
         run: |
           P=tests/fixtures/project
           mkdir -p out
           # `cargo run` invokes the right binary on every OS (no path guessing).
-          cargo run -q -p papery-cli -- --project "$P" export kitchen-sink.md --format pdf  -o out/ks.pdf
-          cargo run -q -p papery-cli -- --project "$P" export kitchen-sink.md --format docx -o out/ks.docx
-          cargo run -q -p papery-cli -- --project "$P" export kitchen-sink.md --format html -o out/ks.html
+          cargo run -q -p ynote-cli -- --project "$P" export kitchen-sink.md --format pdf  -o out/ks.pdf
+          cargo run -q -p ynote-cli -- --project "$P" export kitchen-sink.md --format docx -o out/ks.docx
+          cargo run -q -p ynote-cli -- --project "$P" export kitchen-sink.md --format html -o out/ks.html
           test -s out/ks.pdf && test -s out/ks.docx && test -s out/ks.html
 
   # The desktop app needs platform webview libraries; build it separately.
@@ -68,4 +68,4 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - name: Build desktop app
-        run: cargo build -p papery-app
+        run: cargo build -p ynote-app

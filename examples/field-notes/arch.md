@@ -1,14 +1,14 @@
-# CLAUDE.md — papery
+# CLAUDE.md — ynote
 
 Project-based markdown editor, previewer, and exporter. Single self-contained Rust binary. Zero runtime dependencies. Fast to load, minimal UI, first-class agent interface (CLI + MCP).
 
-Working name: **papery** (rename freely; keep crate paths consistent).
+Working name: **ynote** (rename freely; keep crate paths consistent).
 
 ---
 
 ## 1. Product Summary
 
-papery lets a user (or an AI agent) open a folder of markdown files as a **project**, edit them with live preview, and export to **HTML, PDF, and DOCX** — all rendered by one shared pipeline so preview output and export output are identical.
+ynote lets a user (or an AI agent) open a folder of markdown files as a **project**, edit them with live preview, and export to **HTML, PDF, and DOCX** — all rendered by one shared pipeline so preview output and export output are identical.
 
 Three consumers of the same core:
 
@@ -21,17 +21,17 @@ Three consumers of the same core:
 - **One renderer.** Preview HTML and exported HTML come from the same Rust function. Never render markdown in JavaScript.
 - **Zero runtime deps.** No Pandoc, no LaTeX, no headless Chrome. PDF via embedded Typst. Fonts bundled or system-discovered.
 - **Core owns all logic.** `cli`, `mcp`, and `app` are thin adapters over `core`. If a feature requires logic in an adapter, it belongs in core.
-- **Project = folder.** No database, no hidden state. A project is a directory containing `.md` files, assets, and an optional `papery.toml`. Everything is plain files, git-friendly, agent-editable.
+- **Project = folder.** No database, no hidden state. A project is a directory containing `.md` files, assets, and an optional `ynote.toml`. Everything is plain files, git-friendly, agent-editable.
 - **Fast.** Cold start of the desktop app < 1s. Preview re-render after keystroke < 50ms for typical documents (debounce 100ms). Export of a 100-page document < 5s.
-- **Minimal UI.** File tree + editor + preview + export dialog. No settings screens: all configuration lives in `papery.toml`.
+- **Minimal UI.** File tree + editor + preview + export dialog. No settings screens: all configuration lives in `ynote.toml`.
 
 ## 3. Repository Layout
 
 ```
-papery/
+ynote/
 ├── Cargo.toml                 # workspace
 ├── crates/
-│   ├── core/                  # papery-core: all logic
+│   ├── core/                  # ynote-core: all logic
 │   │   └── src/
 │   │       ├── project.rs     # workspace model, config, asset resolution
 │   │       ├── parse.rs       # markdown → AST (comrak)
@@ -40,8 +40,8 @@ papery/
 │   │       ├── export_docx.rs # AST → .docx bytes
 │   │       ├── outline.rs     # AST → heading tree
 │   │       └── error.rs       # single error enum (thiserror)
-│   ├── cli/                   # papery binary (clap)
-│   ├── mcp/                   # papery-mcp binary (rmcp, stdio transport)
+│   ├── cli/                   # ynote binary (clap)
+│   ├── mcp/                   # ynote-mcp binary (rmcp, stdio transport)
 │   └── app/                   # Tauri 2 shell (src-tauri)
 ├── ui/                        # frontend: vanilla TS or Svelte + CodeMirror 6
 ├── assets/
@@ -54,12 +54,12 @@ papery/
 ## 4. Core Requirements (crates/core)
 
 ### 4.1 Project model (`project.rs`)
-- `Project::open(root: &Path)` — validates directory, loads `papery.toml` if present, applies defaults otherwise.
+- `Project::open(root: &Path)` — validates directory, loads `ynote.toml` if present, applies defaults otherwise.
 - Enumerate documents: all `*.md` under root, respecting `.gitignore` and an optional `exclude` list in config. Return relative paths, sorted.
 - Resolve relative asset paths (images, includes) against the document's own directory.
 - Path safety: **reject any path that escapes the project root** (canonicalize + prefix check). This is a hard security requirement — the MCP server exposes these operations to agents.
 
-### 4.2 Config (`papery.toml`)
+### 4.2 Config (`ynote.toml`)
 ```toml
 [project]
 name = "My Docs"
@@ -113,16 +113,16 @@ All fields optional; sensible defaults for everything. Unknown keys → warning,
 
 ## 5. CLI Requirements (crates/cli)
 
-Binary name: `papery`. Built with clap (derive). All commands accept `--project <dir>` (default: cwd, walking up to find `papery.toml`).
+Binary name: `ynote`. Built with clap (derive). All commands accept `--project <dir>` (default: cwd, walking up to find `ynote.toml`).
 
 ```
-papery list                              # relative paths of all project documents
-papery outline <file.md>                 # heading tree (text or --json)
-papery render <file.md> [-o out.html]    # standalone HTML (stdout if no -o)
-papery export <file.md> --format pdf|docx|html [-o out]
-papery export --all --format pdf -o dist/    # batch export
-papery watch <file.md>                   # re-export on change (notify crate)
-papery check                             # lint: broken relative links/images, exit 1 on findings
+ynote list                              # relative paths of all project documents
+ynote outline <file.md>                 # heading tree (text or --json)
+ynote render <file.md> [-o out.html]    # standalone HTML (stdout if no -o)
+ynote export <file.md> --format pdf|docx|html [-o out]
+ynote export --all --format pdf -o dist/    # batch export
+ynote watch <file.md>                   # re-export on change (notify crate)
+ynote check                             # lint: broken relative links/images, exit 1 on findings
 ```
 
 - `--json` flag on `list`, `outline`, `check` for machine-readable output.
@@ -130,10 +130,10 @@ papery check                             # lint: broken relative links/images, e
 
 ## 6. MCP Server Requirements (crates/mcp)
 
-Binary: `papery-mcp`, stdio transport, built on **rmcp** (official Rust MCP SDK). Started with `--project <dir>`. Registration in Claude Code:
+Binary: `ynote-mcp`, stdio transport, built on **rmcp** (official Rust MCP SDK). Started with `--project <dir>`. Registration in Claude Code:
 
 ```json
-{ "mcpServers": { "papery": { "command": "papery-mcp", "args": ["--project", "."] } } }
+{ "mcpServers": { "ynote": { "command": "ynote-mcp", "args": ["--project", "."] } } }
 ```
 
 Tools (keep this surface small and stable):
@@ -161,7 +161,7 @@ Tools (keep this surface small and stable):
 - Export: Cmd+E opens a dialog — format (PDF/DOCX/HTML), scope (current file / whole project), output location. Progress + "Reveal in folder" on completion.
 - Outline sidebar (from core `outline`), click-to-jump.
 - Unsaved-changes indicator per tab/file; confirm on close with dirty buffers.
-- No settings UI. A "Edit project config" menu item just opens `papery.toml` in the editor.
+- No settings UI. A "Edit project config" menu item just opens `ynote.toml` in the editor.
 - Dark/light theme follows OS; preview theme comes from project config.
 
 ## 8. Quality & Testing

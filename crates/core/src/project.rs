@@ -1,7 +1,7 @@
 //! Project model: a project is just a folder of markdown files.
 //!
 //! No database, no hidden state. [`Project::open`] validates a directory,
-//! loads `papery.toml` if present, and applies defaults otherwise.
+//! loads `ynote.toml` if present, and applies defaults otherwise.
 //!
 //! ## Path safety (hard security requirement)
 //!
@@ -16,7 +16,7 @@ use crate::config::Config;
 use crate::error::{Error, Result};
 
 /// The config file name that marks a project root.
-pub const CONFIG_FILE: &str = "papery.toml";
+pub const CONFIG_FILE: &str = "ynote.toml";
 
 /// An opened project rooted at a directory.
 #[derive(Debug, Clone)]
@@ -31,7 +31,7 @@ pub struct Project {
 impl Project {
     /// Open the project rooted at `root`.
     ///
-    /// `root` must be an existing directory. If it contains `papery.toml`,
+    /// `root` must be an existing directory. If it contains `ynote.toml`,
     /// that config is loaded; otherwise all defaults apply.
     pub fn open(root: impl AsRef<Path>) -> Result<Project> {
         let root = root.as_ref();
@@ -58,7 +58,7 @@ impl Project {
     }
 
     /// Open a project by walking up from `start` to find the nearest
-    /// `papery.toml`. Falls back to `start` itself if none is found.
+    /// `ynote.toml`. Falls back to `start` itself if none is found.
     pub fn discover(start: impl AsRef<Path>) -> Result<Project> {
         let start = start.as_ref();
         let mut dir: Option<&Path> = Some(start);

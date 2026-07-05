@@ -1,4 +1,4 @@
-/* papery default theme — GitHub-flavoured, works in light and dark.
+/* ynote default theme — GitHub-flavoured, works in light and dark.
    Used by both live preview (fragment) and standalone HTML export, so the
    two are pixel-identical. Do not add JS-dependent styling here. */
 
@@ -28,7 +28,7 @@
   }
 }
 
-.papery {
+.ynote {
   color: var(--fg);
   background: var(--bg);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
@@ -41,87 +41,87 @@
   padding: 2rem 1.5rem 6rem;
 }
 
-.papery > *:first-child { margin-top: 0; }
+.ynote > *:first-child { margin-top: 0; }
 
-.papery h1, .papery h2, .papery h3,
-.papery h4, .papery h5, .papery h6 {
+.ynote h1, .ynote h2, .ynote h3,
+.ynote h4, .ynote h5, .ynote h6 {
   margin: 1.8em 0 0.6em;
   font-weight: 600;
   line-height: 1.25;
   scroll-margin-top: 1rem;
 }
-.papery h1 { font-size: 2em; padding-bottom: 0.3em; border-bottom: 1px solid var(--border); }
-.papery h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid var(--border); }
-.papery h3 { font-size: 1.25em; }
-.papery h4 { font-size: 1em; }
-.papery h5 { font-size: 0.875em; }
-.papery h6 { font-size: 0.85em; color: var(--fg-muted); }
+.ynote h1 { font-size: 2em; padding-bottom: 0.3em; border-bottom: 1px solid var(--border); }
+.ynote h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid var(--border); }
+.ynote h3 { font-size: 1.25em; }
+.ynote h4 { font-size: 1em; }
+.ynote h5 { font-size: 0.875em; }
+.ynote h6 { font-size: 0.85em; color: var(--fg-muted); }
 
-.papery a { color: var(--link); text-decoration: none; }
-.papery a:hover { text-decoration: underline; }
+.ynote a { color: var(--link); text-decoration: none; }
+.ynote a:hover { text-decoration: underline; }
 
-.papery p, .papery blockquote, .papery ul, .papery ol,
-.papery dl, .papery table, .papery pre { margin-top: 0; margin-bottom: 1rem; }
+.ynote p, .ynote blockquote, .ynote ul, .ynote ol,
+.ynote dl, .ynote table, .ynote pre { margin-top: 0; margin-bottom: 1rem; }
 
-.papery blockquote {
+.ynote blockquote {
   padding: 0 1em;
   color: var(--fg-muted);
   border-left: 0.25em solid var(--quote-border);
 }
 
-.papery code, .papery kbd, .papery samp {
+.ynote code, .ynote kbd, .ynote samp {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
   font-size: 0.9em;
 }
-.papery :not(pre) > code {
+.ynote :not(pre) > code {
   padding: 0.2em 0.4em;
   background: var(--code-bg);
   border-radius: 6px;
   white-space: break-spaces;
 }
-.papery pre {
+.ynote pre {
   padding: 1rem;
   overflow: auto;
   border-radius: 6px;
   background: var(--bg-subtle);
   line-height: 1.45;
 }
-.papery pre code {
+.ynote pre code {
   padding: 0;
   background: transparent;
   border-radius: 0;
   white-space: pre;
 }
 
-.papery table {
+.ynote table {
   display: block;
   width: max-content;
   max-width: 100%;
   overflow: auto;
   border-collapse: collapse;
 }
-.papery th, .papery td { padding: 6px 13px; border: 1px solid var(--border); }
-.papery tr:nth-child(2n) { background: var(--bg-subtle); }
-.papery th { font-weight: 600; }
+.ynote th, .ynote td { padding: 6px 13px; border: 1px solid var(--border); }
+.ynote tr:nth-child(2n) { background: var(--bg-subtle); }
+.ynote th { font-weight: 600; }
 
-.papery img { max-width: 100%; box-sizing: border-box; background: transparent; }
+.ynote img { max-width: 100%; box-sizing: border-box; background: transparent; }
 
-.papery hr {
+.ynote hr {
   height: 1px;
   border: 0;
   margin: 1.5rem 0;
   background: var(--border);
 }
 
-.papery ul, .papery ol { padding-left: 2em; }
-.papery li + li { margin-top: 0.25em; }
-.papery li.task-list-item { list-style: none; }
-.papery li.task-list-item > input[type="checkbox"] { margin: 0 0.5em 0.25em -1.4em; }
+.ynote ul, .ynote ol { padding-left: 2em; }
+.ynote li + li { margin-top: 0.25em; }
+.ynote li.task-list-item { list-style: none; }
+.ynote li.task-list-item > input[type="checkbox"] { margin: 0 0.5em 0.25em -1.4em; }
 
-.papery .footnotes { font-size: 0.85em; color: var(--fg-muted); border-top: 1px solid var(--border); margin-top: 2rem; }
+.ynote .footnotes { font-size: 0.85em; color: var(--fg-muted); border-top: 1px solid var(--border); margin-top: 2rem; }
 
 /* Anchor link that appears next to headings. */
-.papery .anchor { float: left; margin-left: -1em; padding-right: 0.25em; opacity: 0; }
-.papery h1:hover .anchor, .papery h2:hover .anchor, .papery h3:hover .anchor,
-.papery h4:hover .anchor, .papery h5:hover .anchor, .papery h6:hover .anchor { opacity: 1; }
+.ynote .anchor { float: left; margin-left: -1em; padding-right: 0.25em; opacity: 0; }
+.ynote h1:hover .anchor, .ynote h2:hover .anchor, .ynote h3:hover .anchor,
+.ynote h4:hover .anchor, .ynote h5:hover .anchor, .ynote h6:hover .anchor { opacity: 1; }

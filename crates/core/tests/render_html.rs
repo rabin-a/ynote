@@ -2,7 +2,7 @@
 //! to the expected HTML shape. Uses invariants rather than byte-exact goldens
 //! so the tests stay readable and resilient to incidental whitespace.
 
-use papery_core::render_html::{render_html, RenderOptions};
+use ynote_core::render_html::{render_html, RenderOptions};
 
 fn frag(md: &str) -> String {
     render_html(md, &RenderOptions::preview()).unwrap()
@@ -87,7 +87,7 @@ fn standalone_is_self_contained() {
     let html = render_html("# Title\n\ntext\n", &opts).unwrap();
     assert!(html.starts_with("<!DOCTYPE html>"));
     assert!(html.contains("<style>"));
-    assert!(html.contains(".papery")); // embedded theme
+    assert!(html.contains(".ynote")); // embedded theme
     assert!(html.contains("<title>Title</title>"));
     // No external resource references (self-contained requirement).
     assert!(!html.contains("http://"));

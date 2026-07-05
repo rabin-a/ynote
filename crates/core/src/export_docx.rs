@@ -429,7 +429,7 @@ mod tests {
     #[test]
     fn renders_valid_docx() {
         let md = "# Title\n\nHello **bold** and *italic*.\n\n- a\n- b\n  - nested\n\n1. one\n2. two\n\n| H1 | H2 |\n|----|----|\n| a  | b  |\n\n> quote\n\n```\ncode\n```\n\nFootnote.[^1]\n\n[^1]: note text\n";
-        let dir = std::env::temp_dir().join("papery_docx_smoke");
+        let dir = std::env::temp_dir().join("ynote_docx_smoke");
         std::fs::create_dir_all(&dir).unwrap();
         let project = Project::open(&dir).unwrap();
         let bytes = render_docx(&project, Path::new("doc.md"), md).expect("docx");

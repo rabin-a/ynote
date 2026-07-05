@@ -48,7 +48,7 @@ pub fn to_bytes(project: &Project, rel: &Path, source: &str, format: Format) -> 
 }
 
 /// Produce the raw bytes for a given format, optionally overriding the PDF
-/// table-of-contents setting (`None` = use `papery.toml`). Ignored for
+/// table-of-contents setting (`None` = use `ynote.toml`). Ignored for
 /// non-PDF formats.
 pub fn to_bytes_with(
     project: &Project,
@@ -97,7 +97,7 @@ pub fn export(project: &Project, rel: &Path, format: Format, out: &Path) -> Resu
 }
 
 /// Like [`export`], but with an optional PDF table-of-contents override for
-/// this one export (`None` = use `papery.toml`).
+/// this one export (`None` = use `ynote.toml`).
 pub fn export_with(
     project: &Project,
     rel: &Path,

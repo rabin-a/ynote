@@ -1,14 +1,14 @@
-// papery default PDF template.
+// ynote default PDF template.
 //
-// Defines a single template function, `papery-doc`, applied to the lowered
-// document body via `#show: papery-doc.with(...)`. The exporter composes that
-// show-line from `papery.toml` (paper/margin/font/toc) and front matter
+// Defines a single template function, `ynote-doc`, applied to the lowered
+// document body via `#show: ynote-doc.with(...)`. The exporter composes that
+// show-line from `ynote.toml` (paper/margin/font/toc) and front matter
 // (title/author/date), then appends the lowered markdown body.
 //
 // Keep all page setup, fonts, and heading styles here — the exporter only
 // emits content, never layout.
 
-#let papery-doc(
+#let ynote-doc(
   title: none,
   author: none,
   date: none,

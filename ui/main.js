@@ -1,4 +1,4 @@
-// papery desktop frontend — "field-notes" reskin over the Tauri command
+// ynote desktop frontend — "field-notes" reskin over the Tauri command
 // surface. No bundler; uses the global Tauri API (withGlobalTauri).
 // All markdown → HTML rendering happens in Rust core (render_preview), never here.
 
@@ -60,7 +60,7 @@ function byCreatedDesc(a, b) {
 // The list label is the note's *name* — its title (front matter / heading /
 // first line). Filenames are never shown; empty notes read "New note".
 function labelOf(path) {
-  if (path === "papery.toml") return "Project settings";
+  if (path === "ynote.toml") return "Project settings";
   const e = entryOf(path);
   return e && e.title ? e.title : "New note";
 }
@@ -83,7 +83,7 @@ function formatDate(secs) {
 
 function groupDocs() {
   const all = state.docs.map((d) => d.path).slice();
-  if (!all.includes("papery.toml")) all.push("papery.toml");
+  if (!all.includes("ynote.toml")) all.push("ynote.toml");
   const roots = all.filter((p) => !p.includes("/")).sort(byCreatedDesc);
   const folders = {};
   all
@@ -122,7 +122,7 @@ function renderTree() {
     for (const path of g.files) {
       const row = document.createElement("div");
       row.className = "file-row" + (path === state.file ? " active" : "");
-      const isConfig = path === "papery.toml";
+      const isConfig = path === "ynote.toml";
       const e = entryOf(path);
       const dirty = state.dirty.has(path) ? '<span class="note-dirty"></span>' : "";
       if (isConfig) {
@@ -170,7 +170,7 @@ async function openFile(path) {
     try {
       content = await invoke("read_file", { root: state.root, path });
     } catch {
-      content = ""; // e.g. papery.toml that doesn't exist yet
+      content = ""; // e.g. ynote.toml that doesn't exist yet
     }
     state.file = path;
     state.content = content;
@@ -226,7 +226,7 @@ async function renderPreview() {
     });
     const tmp = document.createElement("div");
     tmp.innerHTML = html;
-    const inner = tmp.querySelector(".papery");
+    const inner = tmp.querySelector(".ynote");
     preview.innerHTML = (inner ? inner.innerHTML : html).trim(); // trim so :empty shows placeholder
     preview.contentEditable = "true"; // edit directly in the preview
     $("#preview-scroll").scrollTop = scroll;
@@ -510,7 +510,7 @@ async function newNamedFile(name) {
 // Renaming a note edits its *title* (the note's name), which lives in the
 // content's first line / heading — the filename never changes.
 function beginRename(path, nameEl) {
-  if (path === "papery.toml") return;
+  if (path === "ynote.toml") return;
   state.renaming = true;
   const current = labelOf(path) === "New note" ? "" : labelOf(path);
   const input = document.createElement("input");
@@ -608,7 +608,7 @@ function makeDropTarget(el, folder) {
 }
 
 async function moveFile(path, folder) {
-  if (!path || path === "papery.toml") return;
+  if (!path || path === "ynote.toml") return;
   const base = path.split("/").pop();
   const to = folder ? `${folder}/${base}` : base;
   if (to === path) return;
@@ -654,7 +654,7 @@ function hideCtxMenu() {
 }
 
 async function deleteFileAction(path) {
-  if (path === "papery.toml") return;
+  if (path === "ynote.toml") return;
   const ok = await dialog.confirm(`Delete “${labelOf(path)}”? This can’t be undone.`, {
     title: "Delete note",
     kind: "warning",
@@ -718,7 +718,7 @@ function toggleSidebar() {
 function escapeHtml(s) {
   return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 }
-// papery only manages markdown files: strip any typed extension and force `.md`.
+// ynote only manages markdown files: strip any typed extension and force `.md`.
 function forceMd(name) {
   return name.replace(/\.[A-Za-z][\w]*$/, "") + ".md";
 }
@@ -1030,7 +1030,7 @@ function wire() {
       cycleView();
     } else if (k === "d") {
       e.preventDefault();
-      if (state.file && state.file !== "papery.toml") deleteFileAction(state.file);
+      if (state.file && state.file !== "ynote.toml") deleteFileAction(state.file);
     }
   });
 }

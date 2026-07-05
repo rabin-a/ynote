@@ -1,0 +1,29 @@
+[package]
+name = "ynote-wasm"
+description = "ynote core compiled to WebAssembly: the one renderer, in the browser"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# The same core the CLI/MCP/desktop adapters use. HTML pipeline only for now
+# (default features) — no Typst/DOCX until the WASM export spike lands.
+ynote-core = { workspace = true }
+wasm-bindgen = "0.2"
+serde_json.workspace = true
+
+# Surface Rust panics as console errors during development.
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[features]
+default = ["console_error_panic_hook"]
+
+[package.metadata.wasm-pack.profile.release]
+# Keep the wasm blob small; core already relies on comrak/syntect.
+# --enable-bulk-memory: rustc emits memory.fill/copy; wasm-opt must accept them.
+# (Bulk memory is baseline-supported in every browser since ~2020.)
+wasm-opt = ["-Oz", "--enable-bulk-memory"]

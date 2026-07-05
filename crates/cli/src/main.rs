@@ -1,20 +1,20 @@
-//! papery command-line interface — a thin adapter over `papery-core`.
+//! ynote command-line interface — a thin adapter over `ynote-core`.
 //!
 //! Exit codes: 0 ok · 1 lint findings · 2 usage error (clap) · 3 IO/render error.
 
 use std::path::{Path, PathBuf};
 
 use clap::{Args, Parser, Subcommand};
-use papery_core::{check, export, outline, Format, Project};
+use ynote_core::{check, export, outline, Format, Project};
 
 #[derive(Parser)]
 #[command(
-    name = "papery",
+    name = "ynote",
     version,
     about = "Markdown editor, previewer, and exporter"
 )]
 struct Cli {
-    /// Project directory (defaults to the current dir, walking up to papery.toml).
+    /// Project directory (defaults to the current dir, walking up to ynote.toml).
     #[arg(long, global = true)]
     project: Option<PathBuf>,
 
@@ -156,7 +156,7 @@ fn cmd_list(project: &Project, args: ListArgs) -> anyhow::Result<i32> {
                 let title = project
                     .read_document(d)
                     .ok()
-                    .and_then(|text| papery_core::parse::title_of(&text));
+                    .and_then(|text| ynote_core::parse::title_of(&text));
                 serde_json::json!({ "path": d.to_string_lossy(), "title": title })
             })
             .collect();
@@ -176,7 +176,7 @@ fn cmd_outline(project: &Project, args: OutlineArgs) -> anyhow::Result<i32> {
     if args.json {
         println!("{}", serde_json::to_string_pretty(&headings)?);
     } else {
-        print!("{}", papery_core::outline::outline_text(&headings));
+        print!("{}", ynote_core::outline::outline_text(&headings));
     }
     Ok(0)
 }

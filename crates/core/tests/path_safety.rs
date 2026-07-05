@@ -3,10 +3,10 @@
 
 use std::path::Path;
 
-use papery_core::Project;
+use ynote_core::Project;
 
 fn temp_project() -> (tempdir::Dir, Project) {
-    let dir = tempdir::Dir::new("papery_pathsafety");
+    let dir = tempdir::Dir::new("ynote_pathsafety");
     std::fs::write(dir.path().join("ok.md"), "# ok\n").unwrap();
     std::fs::create_dir_all(dir.path().join("sub")).unwrap();
     std::fs::write(dir.path().join("sub/inner.md"), "# inner\n").unwrap();
@@ -78,7 +78,7 @@ fn interior_dotdot_that_stays_inside_is_allowed() {
 fn rejects_symlink_escape() {
     let (dir, project) = temp_project();
     // Create a directory outside the root and a symlink to it inside the root.
-    let outside = std::env::temp_dir().join(format!("papery_outside_{}", std::process::id()));
+    let outside = std::env::temp_dir().join(format!("ynote_outside_{}", std::process::id()));
     std::fs::create_dir_all(&outside).unwrap();
     std::fs::write(outside.join("target.md"), "secret\n").unwrap();
     let link = dir.path().join("escape");
@@ -103,7 +103,7 @@ fn write_stays_within_root_and_creates_dirs() {
 
 #[test]
 fn confined_export_rejects_escapes() {
-    use papery_core::{export, Format};
+    use ynote_core::{export, Format};
     let (_d, project) = temp_project();
     let fmt = Format::Html; // HTML export needs no extra feature
                             // Relative `..` escape.

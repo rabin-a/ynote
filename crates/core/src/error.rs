@@ -1,4 +1,4 @@
-//! The single error type for papery-core.
+//! The single error type for ynote-core.
 //!
 //! Adapters map this onto their own surfaces:
 //! - CLI  -> exit codes + stderr message
@@ -39,7 +39,7 @@ pub enum Error {
     #[error("invalid input: {0}")]
     Invalid(String),
 
-    #[error("invalid papery.toml: {0}")]
+    #[error("invalid ynote.toml: {0}")]
     Config(String),
 
     #[error("invalid front matter: {0}")]

@@ -1,4 +1,4 @@
-//! papery-core — all of papery's logic.
+//! ynote-core — all of ynote's logic.
 //!
 //! One markdown parser (comrak) feeds one set of exporters. The preview and
 //! the HTML export come from the same [`render_html`] function, so what you

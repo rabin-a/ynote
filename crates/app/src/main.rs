@@ -1,4 +1,4 @@
-//! papery desktop app (Tauri 2) — a thin adapter over `papery-core`.
+//! ynote desktop app (Tauri 2) — a thin adapter over `ynote-core`.
 //!
 //! All rendering/export logic lives in core; these commands only marshal
 //! between the webview and core. Live preview renders the *editor buffer*
@@ -9,8 +9,8 @@
 
 use std::path::{Path, PathBuf};
 
-use papery_core::{check, export, outline, render_html, Format, Project};
 use serde::Serialize;
+use ynote_core::{check, export, outline, render_html, Format, Project};
 
 fn proj(root: &str) -> Result<Project, String> {
     Project::open(root).map_err(|e| e.to_string())
@@ -43,10 +43,10 @@ fn doc_entries(project: &Project) -> Result<Vec<DocEntry>, String> {
             let content = project.read_document(d).ok();
             let title = content
                 .as_deref()
-                .and_then(papery_core::parse::display_title);
+                .and_then(ynote_core::parse::display_title);
             let subtitle = content
                 .as_deref()
-                .and_then(papery_core::parse::display_subtitle);
+                .and_then(ynote_core::parse::display_subtitle);
             let created = project
                 .resolve_path(d)
                 .ok()
@@ -80,7 +80,7 @@ fn open_project(path: String) -> Result<ProjectInfo, String> {
         root: project.root().to_string_lossy().to_string(),
         config_path: project
             .root()
-            .join("papery.toml")
+            .join("ynote.toml")
             .to_string_lossy()
             .to_string(),
         docs: doc_entries(&project)?,
@@ -168,7 +168,7 @@ fn preview_css(root: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn get_outline(content: String) -> Result<Vec<papery_core::Heading>, String> {
+fn get_outline(content: String) -> Result<Vec<ynote_core::Heading>, String> {
     Ok(outline(&content))
 }
 
@@ -205,7 +205,7 @@ fn check_project(root: String) -> Result<Vec<check::Finding>, String> {
 /// Resolve the project to open on launch — zero setup required:
 /// 1. a directory passed on the command line, else
 /// 2. the last project that was opened, else
-/// 3. a default workspace at `~/Documents/papery`.
+/// 3. a default workspace at `~/Documents/ynote`.
 /// The chosen directory is created and seeded (if empty) and remembered, so the
 /// app always opens straight into a usable project.
 #[tauri::command]
@@ -231,19 +231,19 @@ fn default_workspace(app: &tauri::AppHandle) -> PathBuf {
         // macOS iCloud Drive.
         let icloud = home.join("Library/Mobile Documents/com~apple~CloudDocs");
         if icloud.is_dir() {
-            return icloud.join("papery");
+            return icloud.join("ynote");
         }
         // Common Dropbox location (macOS / Windows / Linux).
         let dropbox = home.join("Dropbox");
         if dropbox.is_dir() {
-            return dropbox.join("papery");
+            return dropbox.join("ynote");
         }
     }
     tauri::Manager::path(app)
         .document_dir()
         .or_else(|_| tauri::Manager::path(app).home_dir())
-        .map(|d| d.join("papery"))
-        .unwrap_or_else(|_| PathBuf::from("papery"))
+        .map(|d| d.join("ynote"))
+        .unwrap_or_else(|_| PathBuf::from("ynote"))
 }
 
 /// Ensure `dir` exists, seed it with a welcome document if it has no markdown
@@ -258,7 +258,7 @@ fn ensure_workspace(app: &tauri::AppHandle, dir: &Path) -> Result<String, String
         .unwrap_or(false);
     if !has_md {
         let _ = std::fs::write(dir.join("welcome.md"), WELCOME_MD);
-        let cfg = dir.join("papery.toml");
+        let cfg = dir.join("ynote.toml");
         if !cfg.exists() {
             let _ = std::fs::write(&cfg, DEFAULT_TOML);
         }
@@ -293,7 +293,7 @@ fn remember_project(app: &tauri::AppHandle, dir: &Path) {
     }
 }
 
-const WELCOME_MD: &str = "---\ntitle: Welcome\n---\n# Welcome to papery\n\nThis is your local workspace. Everything here is a plain markdown **file** in a \
+const WELCOME_MD: &str = "---\ntitle: Welcome\n---\n# Welcome to ynote\n\nThis is your local workspace. Everything here is a plain markdown **file** in a \
 **folder** you own — no accounts, no database, no lock-in.\n\n## Getting started\n\n- Edit this file; changes **save automatically**.\n- Add a new file with the **+** in the sidebar.\n- Export to PDF, DOCX, or HTML from the top-right — one renderer, so the preview *is* the document.\n\n> Write in something you can still open when the company is gone.\n";
 
 const DEFAULT_TOML: &str = "[project]\nname = \"Notes\"\n\n[render]\ntheme = \"default\"\nmath = true\n\n[export.pdf]\npaper = \"a4\"\ntoc = true\n";
@@ -319,5 +319,5 @@ fn main() {
             startup_project,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running papery");
+        .expect("error while running ynote");
 }

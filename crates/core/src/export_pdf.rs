@@ -30,7 +30,7 @@ use crate::error::{Error, Result};
 use crate::parse;
 use crate::project::Project;
 
-/// Render a document to PDF bytes (TOC per `papery.toml`).
+/// Render a document to PDF bytes (TOC per `ynote.toml`).
 pub fn render_pdf(project: &Project, rel: &Path, source: &str) -> Result<Vec<u8>> {
     render_pdf_with(project, rel, source, None)
 }
@@ -84,7 +84,7 @@ fn build_typst_source_with(
     format!("{template}\n{show_line}\n\n{body}\n")
 }
 
-/// Compose the `#show: papery-doc.with(...)` line from config + front matter.
+/// Compose the `#show: ynote-doc.with(...)` line from config + front matter.
 fn build_show_line(
     cfg: &crate::config::PdfConfig,
     title: Option<&str>,
@@ -97,7 +97,7 @@ fn build_show_line(
         None => "none".to_string(),
     };
     format!(
-        "#show: papery-doc.with(\n  \
+        "#show: ynote-doc.with(\n  \
 title: {title},\n  \
 author: {author},\n  \
 date: {date},\n  \
@@ -577,7 +577,7 @@ mod tests {
     const DOC: &str = "\
 ---
 title: Smoke Test
-author: papery
+author: ynote
 date: 2026-07-05
 ---
 
@@ -628,7 +628,7 @@ $$E = mc^2$$
 
     #[test]
     fn renders_valid_pdf() {
-        let dir = std::env::temp_dir().join("papery_pdf_smoke");
+        let dir = std::env::temp_dir().join("ynote_pdf_smoke");
         std::fs::create_dir_all(&dir).unwrap();
         let file = dir.join("doc.md");
         std::fs::write(&file, DOC).unwrap();
@@ -644,7 +644,7 @@ $$E = mc^2$$
     /// curated adversarial set plus deterministically-generated noise.
     #[test]
     fn arbitrary_text_never_breaks_compilation() {
-        let dir = std::env::temp_dir().join("papery_pdf_escape");
+        let dir = std::env::temp_dir().join("ynote_pdf_escape");
         std::fs::create_dir_all(&dir).unwrap();
         let project = Project::open(&dir).unwrap();
 
@@ -692,7 +692,7 @@ $$E = mc^2$$
 
     #[test]
     fn toc_override_flows_into_source() {
-        let dir = std::env::temp_dir().join("papery_toc_override");
+        let dir = std::env::temp_dir().join("ynote_toc_override");
         std::fs::create_dir_all(&dir).unwrap();
         let project = Project::open(&dir).unwrap();
         let md = "# H\n\ntext\n";
@@ -704,7 +704,7 @@ $$E = mc^2$$
 
     #[test]
     fn self_referential_footnote_does_not_overflow() {
-        let dir = std::env::temp_dir().join("papery_pdf_fncycle");
+        let dir = std::env::temp_dir().join("ynote_pdf_fncycle");
         std::fs::create_dir_all(&dir).unwrap();
         let project = Project::open(&dir).unwrap();
         // A footnote whose body references itself, and two mutually-referential ones.
@@ -715,7 +715,7 @@ $$E = mc^2$$
 
     #[test]
     fn missing_and_broken_images_fall_back_to_alt() {
-        let dir = std::env::temp_dir().join("papery_pdf_img");
+        let dir = std::env::temp_dir().join("ynote_pdf_img");
         std::fs::create_dir_all(&dir).unwrap();
         // A file that exists but is not a valid image.
         std::fs::write(dir.join("bad.png"), b"not really a png").unwrap();

@@ -1,4 +1,4 @@
-//! `papery.toml` model.
+//! `ynote.toml` model.
 //!
 //! Every field is optional and has a sensible default, so a project with no
 //! config file behaves identically to one with an empty `[project]` table.

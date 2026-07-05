@@ -1,4 +1,4 @@
-<h1 align="center">papery</h1>
+<h1 align="center">YNote</h1>
 
 <p align="center">
   A project-based markdown editor, previewer, and exporter.<br>
@@ -6,8 +6,8 @@
 </p>
 
 <p align="center">
-  <a href="https://rabin-a.github.io/papery/">Website</a> ·
-  <a href="https://github.com/rabin-a/papery/releases/latest">Download for macOS</a> ·
+  <a href="https://ynote.onl/">Website</a> ·
+  <a href="https://github.com/rabin-a/ynote/releases/latest">Download</a> ·
   <a href="#cli">CLI</a> ·
   <a href="#mcp-server">MCP</a>
 </p>
@@ -16,64 +16,64 @@
 
 - **One renderer.** Preview HTML and exported HTML come from the same Rust function. Markdown is never rendered in JavaScript.
 - **Zero runtime deps.** PDF is produced in-process with embedded Typst — no Pandoc, LaTeX, or headless Chrome. Themes, template, and fonts are baked into the binary.
-- **Project = folder.** A project is a directory of `.md` files plus an optional `papery.toml`. No database, no lock-in — git-friendly and agent-editable.
+- **Project = folder.** A project is a directory of `.md` files plus an optional `ynote.toml`. No database, no lock-in — git-friendly and agent-editable.
 
 ## Install
 
 One line in the Terminal — detects your OS and installs the matching build:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/rabin-a/papery/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rabin-a/ynote/main/install.sh | bash
 ```
 
 - **macOS** — universal `.dmg` (Apple Silicon + Intel) → `/Applications`, quarantine cleared, launched.
-- **Linux** — `.AppImage` → `~/.local/bin/papery` (needs FUSE: `sudo apt install libfuse2`).
-- **Windows** — download the `.msi` from [**Releases**](https://github.com/rabin-a/papery/releases/latest) and run it.
+- **Linux** — `.AppImage` → `~/.local/bin/ynote` (needs FUSE: `sudo apt install libfuse2`).
+- **Windows** — download the `.msi` from [**Releases**](https://github.com/rabin-a/ynote/releases/latest) and run it.
 
 Install the **CLI** or **MCP server** instead of (or alongside) the app by passing a component:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/rabin-a/papery/main/install.sh | bash -s -- cli   # the `papery` CLI
-curl -fsSL https://raw.githubusercontent.com/rabin-a/papery/main/install.sh | bash -s -- mcp   # papery-mcp (prints the MCP config)
-curl -fsSL https://raw.githubusercontent.com/rabin-a/papery/main/install.sh | bash -s -- all   # app + cli + mcp
+curl -fsSL https://raw.githubusercontent.com/rabin-a/ynote/main/install.sh | bash -s -- cli   # the `ynote` CLI
+curl -fsSL https://raw.githubusercontent.com/rabin-a/ynote/main/install.sh | bash -s -- mcp   # ynote-mcp (prints the MCP config)
+curl -fsSL https://raw.githubusercontent.com/rabin-a/ynote/main/install.sh | bash -s -- all   # app + cli + mcp
 ```
 
-Or grab any installer directly from the [Releases](https://github.com/rabin-a/papery/releases/latest) page.
+Or grab any installer directly from the [Releases](https://github.com/rabin-a/ynote/releases/latest) page.
 
-> The macOS and Windows builds aren't code-signed/notarized yet. The install script clears the macOS Gatekeeper quarantine for you; if you install the `.dmg` manually, right-click **papery.app → Open** on first launch (or `xattr -cr /Applications/papery.app`).
+> The macOS and Windows builds aren't code-signed/notarized yet. The install script clears the macOS Gatekeeper quarantine for you; if you install the `.dmg` manually, right-click **YNote.app → Open** on first launch (or `xattr -cr /Applications/YNote.app`).
 
-The desktop app opens straight into a local workspace (defaults to a cloud-synced folder — iCloud Drive `papery`, else `~/Documents/papery`) — no setup, no accounts. `Cmd+N` starts a new file, `⊞` a new group, double-click a filename to rename, and everything autosaves.
+The desktop app opens straight into a local workspace (defaults to a cloud-synced folder — iCloud Drive `ynote`, else `~/Documents/ynote`) — no setup, no accounts. `Cmd+N` starts a new file, `⊞` a new group, double-click a filename to rename, and everything autosaves.
 
 ## CLI
 
-The same engine is a single binary, `papery`, so scripts and agents get identical output.
+The same engine is a single binary, `ynote`, so scripts and agents get identical output.
 
 ```sh
 # Build it (see "Build from source"), then:
-papery list                                   # all documents (--json for machine output)
-papery outline file.md                        # heading tree (--json)
-papery render file.md -o out.html             # standalone HTML (stdout if no -o)
-papery export file.md --format pdf -o out.pdf # pdf | docx | html
-papery export --all --format pdf -o dist/     # batch export
-papery watch file.md --format pdf -o out.pdf  # re-export on change
-papery check                                  # lint broken links/images (exit 1 on findings)
+ynote list                                   # all documents (--json for machine output)
+ynote outline file.md                        # heading tree (--json)
+ynote render file.md -o out.html             # standalone HTML (stdout if no -o)
+ynote export file.md --format pdf -o out.pdf # pdf | docx | html
+ynote export --all --format pdf -o dist/     # batch export
+ynote watch file.md --format pdf -o out.pdf  # re-export on change
+ynote check                                  # lint broken links/images (exit 1 on findings)
 ```
 
-All commands accept `--project <dir>` (defaults to the cwd, walking up to find `papery.toml`). Exit codes: `0` ok · `1` lint findings · `2` usage · `3` IO/render.
+All commands accept `--project <dir>` (defaults to the cwd, walking up to find `ynote.toml`). Exit codes: `0` ok · `1` lint findings · `2` usage · `3` IO/render.
 
-To put `papery` on your `PATH` after building:
+To put `ynote` on your `PATH` after building:
 
 ```sh
-cargo build --release -p papery-cli
-cp target/release/papery /usr/local/bin/   # or ~/.local/bin, anywhere on PATH
+cargo build --release -p ynote-cli
+cp target/release/ynote /usr/local/bin/   # or ~/.local/bin, anywhere on PATH
 ```
 
 ## MCP server
 
-`papery-mcp` exposes the same engine to AI agents over stdio. Register it with any MCP client (e.g. Claude Code):
+`ynote-mcp` exposes the same engine to AI agents over stdio. Register it with any MCP client (e.g. Claude Code):
 
 ```json
-{ "mcpServers": { "papery": { "command": "papery-mcp", "args": ["--project", "."] } } }
+{ "mcpServers": { "ynote": { "command": "ynote-mcp", "args": ["--project", "."] } } }
 ```
 
 Tools: `list_documents`, `read_document` (whole file or one section via `heading_slug`), `write_document`, `edit_section`, `get_outline`, `render_html`, `export`, `check_project`. Every path is confined to the project root.
@@ -83,8 +83,8 @@ Tools: `list_documents`, `read_document` (whole file or one section via `heading
 Rust stable is all you need for the CLI and MCP server:
 
 ```sh
-cargo build --release -p papery-cli    # the `papery` CLI
-cargo build --release -p papery-mcp    # the MCP server
+cargo build --release -p ynote-cli    # the `ynote` CLI
+cargo build --release -p ynote-mcp    # the MCP server
 ```
 
 The desktop app uses [Tauri 2](https://tauri.app) and platform webview libraries:
@@ -94,7 +94,7 @@ The desktop app uses [Tauri 2](https://tauri.app) and platform webview libraries
 cd crates/app && tauri build --target universal-apple-darwin   # -> .app + .dmg
 ```
 
-## Configuration (`papery.toml`)
+## Configuration (`ynote.toml`)
 
 ```toml
 [project]
@@ -122,14 +122,14 @@ Every key is optional; unknown keys warn rather than error.
 ## Workspace layout
 
 ```
-crates/core   papery-core — parse, render, export (HTML/PDF/DOCX)
-crates/cli    papery       — command-line interface
-crates/mcp    papery-mcp   — MCP stdio server (rmcp)
-crates/app    papery-app   — Tauri 2 desktop app
-ui/           desktop frontend (vanilla JS + bundled fonts)
+crates/core   ynote-core — parse, render, export (HTML/PDF/DOCX)
+crates/cli    ynote       — command-line interface
+crates/mcp    ynote-mcp   — MCP stdio server (rmcp)
+crates/app    ynote-app   — Tauri 2 desktop app
+ui/           desktop frontend (vanilla JS, system font)
 assets/       themes (CSS) + the Typst PDF template
 ```
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Bundled fonts (IBM Plex Sans/Mono, Newsreader) are licensed under the SIL Open Font License.
+MIT — see [LICENSE](LICENSE).

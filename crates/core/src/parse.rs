@@ -8,7 +8,7 @@ use comrak::{parse_document, Arena, Options};
 /// The comrak arena that owns a parsed document's nodes.
 pub type Ast<'a> = &'a AstNode<'a>;
 
-/// Build the comrak options papery uses everywhere: full GFM, front matter,
+/// Build the comrak options ynote uses everywhere: full GFM, front matter,
 /// and math. Using one function keeps preview and every export byte-consistent.
 pub fn options() -> Options<'static> {
     let mut o = Options::default();

@@ -1,12 +1,12 @@
 ---
 title: Kitchen Sink
-author: papery
+author: ynote
 date: 2026-07-05
 ---
 
 # Kitchen Sink
 
-A demo document exercising **every** markdown construct papery supports, so
+A demo document exercising **every** markdown construct ynote supports, so
 preview, HTML, PDF, and DOCX output can be compared side by side.
 
 Inline styles: **bold**, *italic*, ~~strikethrough~~, `inline code`, a

@@ -126,7 +126,7 @@ pub fn render_html(source: &str, opts: &RenderOptions) -> Result<String> {
     if opts.standalone {
         Ok(standalone_document(&body, title.as_deref(), opts))
     } else {
-        Ok(format!("<div class=\"papery\">\n{body}</div>\n"))
+        Ok(format!("<div class=\"ynote\">\n{body}</div>\n"))
     }
 }
 
@@ -517,7 +517,7 @@ fn standalone_document(body: &str, title: Option<&str>, opts: &RenderOptions) ->
         "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\" />\n\
 <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n\
 <title>{title}</title>\n<style>\n{theme_css}\n{code_css}\n</style>\n{katex}</head>\n\
-<body>\n<article class=\"papery\">\n{body}</article>\n</body>\n</html>\n",
+<body>\n<article class=\"ynote\">\n{body}</article>\n</body>\n</html>\n",
         title = esc_text(title),
     )
 }

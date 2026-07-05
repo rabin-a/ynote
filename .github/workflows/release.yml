@@ -1,6 +1,6 @@
 name: release
 
-# Push a version tag (e.g. v0.1.0) to build papery for macOS, Linux, and
+# Push a version tag (e.g. v0.1.0) to build ynote for macOS, Linux, and
 # Windows and attach the installers to a GitHub Release for that tag.
 on:
   push:
@@ -46,13 +46,13 @@ jobs:
         with:
           projectPath: crates/app
           tagName: ${{ github.ref_name }}
-          releaseName: "papery ${{ github.ref_name }}"
+          releaseName: "ynote ${{ github.ref_name }}"
           releaseBody: |
-            papery — a project-based markdown editor, previewer, and exporter.
+            ynote — a project-based markdown editor, previewer, and exporter.
 
             **Install (macOS / Linux):**
             ```
-            curl -fsSL https://raw.githubusercontent.com/rabin-a/papery/main/install.sh | bash
+            curl -fsSL https://raw.githubusercontent.com/rabin-a/ynote/main/install.sh | bash
             ```
 
             Downloads below: macOS universal `.dmg`, Linux `.AppImage`/`.deb`, Windows `.msi`.
@@ -62,7 +62,7 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
 
-      # Also ship the standalone CLI (`papery`) and MCP server (`papery-mcp`)
+      # Also ship the standalone CLI (`ynote`) and MCP server (`ynote-mcp`)
       # so `install.sh cli|mcp|all` can fetch prebuilt binaries.
       - name: Package CLI + MCP (macOS universal)
         if: matrix.platform == 'macos-latest'
@@ -70,13 +70,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cargo build --release -p papery-cli -p papery-mcp --target aarch64-apple-darwin
-          cargo build --release -p papery-cli -p papery-mcp --target x86_64-apple-darwin
+          cargo build --release -p ynote-cli -p ynote-mcp --target aarch64-apple-darwin
+          cargo build --release -p ynote-cli -p ynote-mcp --target x86_64-apple-darwin
           mkdir -p dist
-          lipo -create target/aarch64-apple-darwin/release/papery     target/x86_64-apple-darwin/release/papery     -output dist/papery
-          lipo -create target/aarch64-apple-darwin/release/papery-mcp target/x86_64-apple-darwin/release/papery-mcp -output dist/papery-mcp
-          tar -czf papery-tools-macos-universal.tar.gz -C dist papery papery-mcp
-          gh release upload "${{ github.ref_name }}" papery-tools-macos-universal.tar.gz --clobber
+          lipo -create target/aarch64-apple-darwin/release/ynote     target/x86_64-apple-darwin/release/ynote     -output dist/ynote
+          lipo -create target/aarch64-apple-darwin/release/ynote-mcp target/x86_64-apple-darwin/release/ynote-mcp -output dist/ynote-mcp
+          tar -czf ynote-tools-macos-universal.tar.gz -C dist ynote ynote-mcp
+          gh release upload "${{ github.ref_name }}" ynote-tools-macos-universal.tar.gz --clobber
 
       - name: Package CLI + MCP (Linux)
         if: matrix.platform == 'ubuntu-latest'
@@ -84,9 +84,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cargo build --release -p papery-cli -p papery-mcp
-          tar -czf papery-tools-linux-x86_64.tar.gz -C target/release papery papery-mcp
-          gh release upload "${{ github.ref_name }}" papery-tools-linux-x86_64.tar.gz --clobber
+          cargo build --release -p ynote-cli -p ynote-mcp
+          tar -czf ynote-tools-linux-x86_64.tar.gz -C target/release ynote ynote-mcp
+          gh release upload "${{ github.ref_name }}" ynote-tools-linux-x86_64.tar.gz --clobber
 
       - name: Package CLI + MCP (Windows)
         if: matrix.platform == 'windows-latest'
@@ -94,6 +94,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cargo build --release -p papery-cli -p papery-mcp
-          Compress-Archive -Path target/release/papery.exe,target/release/papery-mcp.exe -DestinationPath papery-tools-windows-x86_64.zip -Force
-          gh release upload "${{ github.ref_name }}" papery-tools-windows-x86_64.zip --clobber
+          cargo build --release -p ynote-cli -p ynote-mcp
+          Compress-Archive -Path target/release/ynote.exe,target/release/ynote-mcp.exe -DestinationPath ynote-tools-windows-x86_64.zip -Force
+          gh release upload "${{ github.ref_name }}" ynote-tools-windows-x86_64.zip --clobber

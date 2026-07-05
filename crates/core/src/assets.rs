@@ -5,7 +5,7 @@
 /// The default HTML preview/export theme.
 pub const DEFAULT_THEME_CSS: &str = include_str!("../../../assets/themes/default.css");
 
-/// The default Typst PDF template (the `papery-doc` function).
+/// The default Typst PDF template (the `ynote-doc` function).
 pub const DEFAULT_TYPST_TEMPLATE: &str = include_str!("../../../assets/typst/default.typ");
 
 /// Return the default theme CSS.

@@ -1,6 +1,6 @@
-/* papery desktop — "field-notes" theme, ported from the imported Claude design.
-   Neutral palette, IBM Plex + Newsreader, blue accent. The rendered
-   prose (.papery) is produced by the Rust renderer; this file only styles it. */
+/* YNote desktop — Apple Notes-style theme: system font, light palette, gold
+   accent. The rendered prose (.ynote) is produced by the Rust renderer; this
+   file only styles it. */
 
 :root {
   --paper: #ffffff;
@@ -301,15 +301,15 @@ body {
   display: flex; align-items: center; justify-content: center; font: 700 10px var(--sans);
 }
 
-/* ================= Rendered prose (.papery, from Rust renderer) ============= */
-#preview.papery { max-width: 900px; margin: 0 auto; padding: 40px 56px 44vh; }
+/* ================= Rendered prose (.ynote, from Rust renderer) ============= */
+#preview.ynote { max-width: 900px; margin: 0 auto; padding: 40px 56px 44vh; }
 /* Reading mode gets nearly the full pane width (split stays a comfy measure). */
-#surface.mode-reading #preview.papery { max-width: min(1500px, 96%); padding-left: 3%; padding-right: 3%; }
+#surface.mode-reading #preview.ynote { max-width: min(1500px, 96%); padding-left: 3%; padding-right: 3%; }
 
 /* WYSIWYG: the whole preview is contenteditable. */
-#preview.papery[contenteditable="true"] { outline: none; min-height: 60vh; cursor: text; }
+#preview.ynote[contenteditable="true"] { outline: none; min-height: 60vh; cursor: text; }
 #surface.mode-reading #preview-scroll, #surface.mode-split #preview-scroll { cursor: text; }
-#preview.papery:empty::before { content: "Start writing…"; color: var(--faint); font-style: italic; }
+#preview.ynote:empty::before { content: "Start writing…"; color: var(--faint); font-style: italic; }
 
 /* Floating block-format toolbar (top-right of the preview). */
 .format-bar {
@@ -326,64 +326,64 @@ body {
 }
 .format-bar button:hover { background: rgba(224, 169, 46, 0.1); color: var(--accent); }
 #surface.mode-source .format-bar { display: none; }
-.papery {
+.ynote {
   font-family: var(--sans); color: var(--ink); font-size: 13.5px; line-height: 1.47;
 }
-.papery > :first-child { margin-top: 0; }
-.papery h1, .papery h2, .papery h3, .papery h4, .papery h5, .papery h6 {
+.ynote > :first-child { margin-top: 0; }
+.ynote h1, .ynote h2, .ynote h3, .ynote h4, .ynote h5, .ynote h6 {
   font-family: var(--sans); color: var(--ink-strong); letter-spacing: -0.01em;
   line-height: 1.25; margin: 1.1em 0 0.35em; scroll-margin-top: 20px;
 }
-.papery h1 { font-size: 19px; font-weight: 700; }
-.papery h2 { font-size: 16px; font-weight: 700; }
-.papery h3 { font-size: 14.5px; font-weight: 700; }
-.papery h4 { font-size: 13.5px; font-weight: 600; }
-.papery h5 { font-size: 12.5px; font-weight: 600; }
-.papery h6 { font-size: 12px; font-weight: 600; color: var(--muted); }
-.papery .anchor { display: none; }  /* keep the design clean; ids remain for jumps */
+.ynote h1 { font-size: 19px; font-weight: 700; }
+.ynote h2 { font-size: 16px; font-weight: 700; }
+.ynote h3 { font-size: 14.5px; font-weight: 700; }
+.ynote h4 { font-size: 13.5px; font-weight: 600; }
+.ynote h5 { font-size: 12.5px; font-weight: 600; }
+.ynote h6 { font-size: 12px; font-weight: 600; color: var(--muted); }
+.ynote .anchor { display: none; }  /* keep the design clean; ids remain for jumps */
 
-.papery p { margin: 0 0 0.85em; }
-.papery a { color: #0b66d6; text-decoration: none; }
-.papery a:hover { text-decoration: underline; }
-.papery strong { font-weight: 700; color: var(--ink-strong); }
-.papery em { font-style: italic; }
-.papery del { color: var(--muted-2); }
+.ynote p { margin: 0 0 0.85em; }
+.ynote a { color: #0b66d6; text-decoration: none; }
+.ynote a:hover { text-decoration: underline; }
+.ynote strong { font-weight: 700; color: var(--ink-strong); }
+.ynote em { font-style: italic; }
+.ynote del { color: var(--muted-2); }
 
-.papery :not(pre) > code {
+.ynote :not(pre) > code {
   font-family: var(--mono); font-size: 0.88em; background: #f1f1f4; color: #c7254e;
   padding: 0.12em 0.38em; border-radius: 4px;
 }
-.papery pre.mdcode {
+.ynote pre.mdcode {
   background: #f5f5f7; color: var(--ink); border: 1px solid var(--border);
   font-family: var(--mono); font-size: 13px;
   line-height: 1.55; padding: 14px 16px; border-radius: 8px; overflow: auto; margin: 1em 0;
 }
-.papery pre.mdcode code { font-family: var(--mono); background: none; color: inherit; padding: 0; }
+.ynote pre.mdcode code { font-family: var(--mono); background: none; color: inherit; padding: 0; }
 
-.papery blockquote {
+.ynote blockquote {
   margin: 1em 0; padding: 0.1em 0 0.1em 1em; border-left: 3px solid var(--accent);
   color: var(--muted); font-size: 13.5px; line-height: 1.47;
 }
-.papery blockquote p { margin: 0.3em 0; }
+.ynote blockquote p { margin: 0.3em 0; }
 
-.papery ul, .papery ol { margin: 0 0 1.1em; padding-left: 1.5em; line-height: 1.7; }
-.papery li { margin: 0.35em 0; }
-.papery li.task-list-item { list-style: none; margin-left: -1.3em; }
-.papery li.task-list-item input[type="checkbox"] {
+.ynote ul, .ynote ol { margin: 0 0 1.1em; padding-left: 1.5em; line-height: 1.7; }
+.ynote li { margin: 0.35em 0; }
+.ynote li.task-list-item { list-style: none; margin-left: -1.3em; }
+.ynote li.task-list-item input[type="checkbox"] {
   width: 16px; height: 16px; margin-right: 9px; vertical-align: -3px; accent-color: var(--accent);
 }
 
-.papery table {
+.ynote table {
   border-collapse: collapse; width: 100%; margin: 1.3em 0;
   font-family: var(--sans); font-size: 15.6px; display: table;
 }
-.papery th { text-align: left; padding: 9px 13px; border-bottom: 2px solid var(--border); color: #5f574c; font-weight: 600; background: var(--surface-2); }
-.papery td { padding: 8px 13px; border-bottom: 1px solid var(--border-3); color: var(--ink-soft); }
-.papery tbody tr:nth-child(2n) { background: var(--surface-2); }
+.ynote th { text-align: left; padding: 9px 13px; border-bottom: 2px solid var(--border); color: #5f574c; font-weight: 600; background: var(--surface-2); }
+.ynote td { padding: 8px 13px; border-bottom: 1px solid var(--border-3); color: var(--ink-soft); }
+.ynote tbody tr:nth-child(2n) { background: var(--surface-2); }
 
-.papery hr { border: none; border-top: 1px solid var(--border); margin: 1.8em 0; }
-.papery img { max-width: 100%; border-radius: 8px; }
-.papery .math { font-family: var(--mono); font-size: 0.9em; color: var(--muted); }
+.ynote hr { border: none; border-top: 1px solid var(--border); margin: 1.8em 0; }
+.ynote img { max-width: 100%; border-radius: 8px; }
+.ynote .math { font-family: var(--mono); font-size: 0.9em; color: var(--muted); }
 
-.papery .footnote-definition { font-size: 0.9em; color: var(--muted); border-top: 1px solid var(--border-3); margin-top: 0.4em; padding-top: 0.4em; }
-.papery sup.footnote-ref a { border-bottom: none; }
+.ynote .footnote-definition { font-size: 0.9em; color: var(--muted); border-top: 1px solid var(--border-3); margin-top: 0.4em; padding-top: 0.4em; }
+.ynote sup.footnote-ref a { border-bottom: none; }
