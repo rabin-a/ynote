@@ -283,7 +283,8 @@ body {
 #surface.mode-reading #preview.papery { max-width: min(1180px, 92%); padding-left: 5%; padding-right: 5%; }
 
 /* WYSIWYG: the whole preview is contenteditable. */
-#preview.papery[contenteditable="true"] { outline: none; min-height: 60vh; }
+#preview.papery[contenteditable="true"] { outline: none; min-height: 60vh; cursor: text; }
+#surface.mode-reading #preview-scroll, #surface.mode-split #preview-scroll { cursor: text; }
 #preview.papery:empty::before { content: "Start writing…"; color: #b7ad9c; font-style: italic; }
 
 /* Floating block-format toolbar (top-right of the preview). */

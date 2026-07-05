@@ -730,6 +730,24 @@ function wire() {
 
   $("#editor").addEventListener("input", onEdit);
   setupPreviewEditing();
+  // Click the empty area below the content to keep writing (append a paragraph).
+  $("#preview-scroll").addEventListener("mousedown", (e) => {
+    const preview = $("#preview");
+    if (preview.contentEditable !== "true") return;
+    if (e.target !== preview && e.target !== $("#preview-scroll")) return; // clicked real content
+    e.preventDefault();
+    const last = preview.lastElementChild;
+    let target;
+    if (last && last.tagName === "P" && !last.textContent.trim()) {
+      target = last;
+    } else {
+      target = document.createElement("p");
+      target.appendChild(document.createElement("br"));
+      preview.appendChild(target);
+    }
+    preview.focus();
+    placeCaretEnd(target);
+  });
   $("#preview-scroll").addEventListener("scroll", () => {
     if (state._raf) return;
     state._raf = requestAnimationFrame(() => {
