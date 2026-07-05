@@ -302,10 +302,16 @@ function updateActiveLabel() {
 
 // ------------------------------------------------------------------ export ---
 
+// Turn a note title into a safe default filename for export.
+function safeFileName(s) {
+  const name = (s || "note").replace(/[/\\:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim();
+  return name.slice(0, 80) || "note";
+}
+
 async function doExport(fmt) {
   hideExportMenu();
   if (!state.root || !state.file) return;
-  const base = state.file.split("/").pop().replace(/\.[^.]+$/, "");
+  const base = safeFileName(labelOf(state.file)); // export uses the note's name, not the filename
   // Ask the user where to save.
   let dest;
   try {
