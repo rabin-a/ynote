@@ -62,7 +62,13 @@ fn build_typst_source_with(
     source: &str,
     toc: Option<bool>,
 ) -> String {
-    build_typst(source, &project.config().export.pdf, Some(project), rel, toc)
+    build_typst(
+        source,
+        &project.config().export.pdf,
+        Some(project),
+        rel,
+        toc,
+    )
 }
 
 /// Render markdown straight to PDF bytes with an explicit config and no
