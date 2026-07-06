@@ -53,8 +53,14 @@ jobs:
         with:
           key: wasm-pdf
 
-      - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      # Pin 0.15.0 — the rustwasm.github.io installer ships an old 0.13.1 that
+      # lacks `--profile` custom-profile support the pdf build relies on.
+      - name: Install wasm-pack 0.15.0
+        run: |
+          V=0.15.0
+          curl -fsSL "https://github.com/rustwasm/wasm-pack/releases/download/v${V}/wasm-pack-v${V}-x86_64-unknown-linux-musl.tar.gz" | tar -xz
+          sudo mv "wasm-pack-v${V}-x86_64-unknown-linux-musl/wasm-pack" /usr/local/bin/wasm-pack
+          wasm-pack --version
 
       - name: Build WASM bundles → web/vendor + web/vendor-pdf
         run: crates/wasm/build-web.sh
