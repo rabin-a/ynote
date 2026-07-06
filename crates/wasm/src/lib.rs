@@ -48,15 +48,14 @@ pub fn render_standalone(markdown: &str, title: Option<String>) -> Result<String
     render_html(markdown, &opts).map_err(to_js)
 }
 
-/// The CSS the preview fragment needs: the default page/typography theme plus
-/// class-based syntax-highlighting rules for the current syntect theme.
-/// Injected once into a `<style>` tag; stable for the session.
+/// The syntax-highlighting token colors for the preview, as class-based CSS.
+///
+/// Matches the desktop app: the web frontend supplies its own prose theme
+/// (`style.css`), so from core we only need the syntect token colors. Injected
+/// once into a `<style>` tag; stable for the session.
 #[wasm_bindgen]
 pub fn preview_css() -> String {
-    let mut css = String::from(ynote_core::assets::default_theme_css());
-    css.push('\n');
-    css.push_str(&syntect_css(SYNTAX_THEME));
-    css
+    syntect_css(SYNTAX_THEME)
 }
 
 /// The document outline as a JSON array of `{level, text, slug, line}` — feeds
@@ -85,6 +84,16 @@ pub fn extract_section(markdown: &str, slug: &str) -> Result<String, JsError> {
 #[wasm_bindgen]
 pub fn replace_section(markdown: &str, slug: &str, content: &str) -> Result<String, JsError> {
     ynote_core::section::replace_section(markdown, slug, content).map_err(to_js)
+}
+
+/// Render markdown straight to PDF bytes, compiled in-browser by Typst (WASM).
+/// `toc` toggles the table of contents. Returns the raw `.pdf` bytes for the
+/// page to download or write back to storage. Only present in the `pdf` build.
+#[cfg(feature = "pdf")]
+#[wasm_bindgen]
+pub fn export_pdf(markdown: &str, toc: bool) -> Result<Vec<u8>, JsError> {
+    let cfg = ynote_core::config::PdfConfig::default();
+    ynote_core::export_pdf::render_pdf_from_source(markdown, &cfg, Some(toc)).map_err(to_js)
 }
 
 fn to_js(e: ynote_core::Error) -> JsError {

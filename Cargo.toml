@@ -53,3 +53,15 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "syn
 opt-level = 3
 lto = "thin"
 strip = true
+
+# Size-first profile for the WASM (browser) bundles only — keeps the desktop
+# release profile fast. Built via `wasm-pack build --profile release-wasm`.
+# opt-level "z" + fat LTO + one codegen unit + panic=abort minimise the blob;
+# panic=abort is safe here because the wasm surface returns Results, not panics.
+[profile.release-wasm]
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

@@ -21,3 +21,7 @@ dist/
 
 # Local scratch
 /scratch
+
+# Generated WASM bundles for the web app (built by crates/wasm/build-web.sh or CI)
+/web/vendor/
+/web/vendor-pdf/
