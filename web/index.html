@@ -1,131 +1,122 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="auto">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ynote — markdown notes, one renderer, your files</title>
+    <title>ynote — markdown notes, one renderer, in your browser</title>
     <meta
       name="description"
-      content="ynote is a fast markdown editor and exporter that runs entirely in your browser. Your notes stay in your own folder — no server, no account."
+      content="ynote is a fast markdown editor and exporter that runs entirely in your browser. Notes save automatically in this browser — no account, no server, nothing uploaded."
     />
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <!-- ============================ WELCOME ============================ -->
-    <main id="welcome" class="view">
-      <header class="site-head">
-        <div class="brand">
-          <span class="logo"></span>
+    <div id="app">
+      <!-- Title bar -->
+      <header id="titlebar">
+        <div class="tb-native-gap"></div>
+        <div class="tb-brand">
+          <span class="logo"><span class="logo-mark"></span></span>
           <span class="wordmark">ynote<span class="tld">.onl</span></span>
         </div>
-        <nav class="site-nav">
-          <a href="#how">How it works</a>
-          <a href="https://github.com/rabin-a/ynote" target="_blank" rel="noopener">GitHub</a>
-          <button id="cta-nav" class="btn btn-ghost">Open a folder</button>
-        </nav>
-      </header>
-
-      <section class="hero">
-        <p class="eyebrow">Runs in your browser · Nothing leaves your machine</p>
-        <h1>Your notes. One renderer.<br />Zero backend.</h1>
-        <p class="lede">
-          A markdown editor, live preview, and exporter that opens a folder on
-          your own disk and writes plain <code>.md</code> files back to it.
-          The same Rust engine powers the preview, the export, the desktop app,
-          and the agent tools — so what you see is exactly what you ship.
-        </p>
-        <div class="hero-cta">
-          <button id="cta-open" class="btn btn-primary">
-            Open a folder &amp; start writing
+        <div class="tb-spacer"></div>
+        <div class="export-wrap">
+          <button id="btn-export" class="export-btn">
+            <span class="ico-export"></span>
+            Export
+            <span class="caret">▾</span>
           </button>
-          <a href="#how" class="btn btn-ghost">See the three ways to run it</a>
-        </div>
-        <p id="compat-note" class="compat" hidden></p>
-      </section>
-
-      <!-- Three entry points -->
-      <section id="how" class="ways">
-        <article class="way">
-          <div class="way-ico way-web"></div>
-          <h3>Use it here, in the browser</h3>
-          <p>
-            Click <b>Open a folder</b>. Pick any directory of markdown on your
-            disk — ynote reads and writes those exact files. No upload, no
-            account, no sync. Best in Chrome, Edge, Brave, or Arc.
-          </p>
-          <button class="btn btn-small cta-open-inline">Open a folder</button>
-        </article>
-
-        <article class="way">
-          <div class="way-ico way-desktop"></div>
-          <h3>Install the desktop app</h3>
-          <p>
-            Prefer a native window with system fonts and offline PDF export?
-            The desktop build is the same engine wrapped in a 1-second-cold-start
-            app for macOS, Windows, and Linux.
-          </p>
-          <a class="btn btn-small" href="https://github.com/rabin-a/ynote/releases" target="_blank" rel="noopener">Download</a>
-        </article>
-
-        <article class="way">
-          <div class="way-ico way-mcp"></div>
-          <h3>Wire it into your agent (MCP)</h3>
-          <p>
-            Let Claude or any MCP client read, write, and export your notes
-            directly. Point the server at a folder and the agent gets a small,
-            typed tool surface — <code>write_document</code>, <code>edit_section</code>,
-            <code>export</code>.
-          </p>
-          <button id="show-mcp" class="btn btn-small">Show config</button>
-        </article>
-      </section>
-
-      <pre id="mcp-config" class="mcp-config" hidden><code>{
-  "mcpServers": {
-    "ynote": { "command": "ynote-mcp", "args": ["--project", "."] }
-  }
-}</code></pre>
-
-      <footer class="site-foot">
-        <span>ynote.onl — plain files, your disk, no server.</span>
-        <span class="foot-dim">Preview &amp; export rendered by one Rust engine compiled to WebAssembly.</span>
-      </footer>
-    </main>
-
-    <!-- ============================ EDITOR ============================ -->
-    <section id="editor" class="view" hidden>
-      <header class="app-head">
-        <div class="app-brand">
-          <span class="logo logo-sm"></span>
-          <span class="app-project" id="project-name">—</span>
-        </div>
-        <div class="app-actions">
-          <span id="save-status" class="save-status"></span>
-          <button id="btn-new" class="btn btn-ghost btn-small" title="New note (⌘N)">New</button>
-          <button id="btn-export" class="btn btn-ghost btn-small" title="Export HTML (⌘E)">Export HTML</button>
-          <button id="btn-view" class="btn btn-ghost btn-small" title="Toggle view (⌘\\)">Split</button>
-          <button id="btn-close" class="btn btn-ghost btn-small">Close folder</button>
+          <div id="export-menu" class="export-menu" hidden>
+            <div class="export-head">Export current note</div>
+            <div class="export-opt" data-fmt="html">
+              <span class="badge badge-html">HTML</span>
+              <span class="opt-text"><b>HTML</b><small>standalone · inlined</small></span>
+            </div>
+            <div class="export-opt" data-fmt="pdf">
+              <span class="badge badge-pdf">PDF</span>
+              <span class="opt-text"><b>PDF</b><small>Typst · a4</small></span>
+            </div>
+            <div class="export-opt export-opt-disabled" data-fmt="docx">
+              <span class="badge badge-docx">DOCX</span>
+              <span class="opt-text"><b>Word</b><small>only available in desktop</small></span>
+            </div>
+          </div>
         </div>
       </header>
 
-      <div class="app-body">
-        <aside class="sidebar">
-          <div class="side-head">Files</div>
-          <ul id="file-list" class="file-list"></ul>
-          <div class="side-head side-head-outline">Outline</div>
-          <ul id="outline-list" class="outline-list"></ul>
+      <!-- Main -->
+      <div id="main">
+        <aside id="sidebar">
+          <div class="side-head" id="files-head">
+            <span>Notes</span>
+            <button id="btn-new" title="New note">+</button>
+          </div>
+          <div id="file-tree"></div>
+
+          <div id="outline-section" hidden>
+            <div class="side-head side-head-sub"><span>On this page</span></div>
+            <div id="outline-list"></div>
+          </div>
         </aside>
 
-        <div class="pane pane-editor">
-          <textarea id="editor-area" spellcheck="true" placeholder="# Start writing…"></textarea>
-        </div>
-        <div class="pane pane-preview">
-          <div id="preview" class="ynote-preview"></div>
+        <section id="center">
+          <div id="tabbar">
+            <span id="active-path">Welcome to ynote</span>
+            <div class="tab-spacer"></div>
+            <div id="view-toggle" class="seg">
+              <button data-view="source" title="Source">Source</button>
+              <button data-view="split" class="active" title="Split">Split</button>
+              <button data-view="reading" title="Reading">Reading</button>
+            </div>
+          </div>
+
+          <div id="surface" class="mode-split">
+            <div id="editor-wrap">
+              <textarea id="editor" spellcheck="false" placeholder="Start writing…"></textarea>
+            </div>
+            <div id="preview-wrap">
+              <style id="preview-style"></style>
+              <div id="format-bar" class="format-bar">
+                <button data-fmt="h1" title="Title (Heading 1)">Title</button>
+                <button data-fmt="h2" title="Heading 2">H2</button>
+                <button data-fmt="h3" title="Heading 3">H3</button>
+                <button data-fmt="p" title="Body text">Body</button>
+                <button data-fmt="ul" title="Bulleted list">List</button>
+                <button data-fmt="blockquote" title="Quote">Quote</button>
+                <button data-fmt="pre" title="Code block">Code</button>
+              </div>
+              <div id="preview-scroll">
+                <div id="preview" class="ynote"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Status bar -->
+      <footer id="statusbar">
+        <span id="btn-toggle-tree" class="sb-btn">☰ notes</span>
+        <span class="sb-dot">·</span>
+        <span id="stat-words">0 words</span>
+        <span class="sb-dot">·</span>
+        <span id="stat-read">1 min read</span>
+        <div class="sb-spacer"></div>
+        <span id="save-label" class="save-label">Welcome</span>
+        <span class="sb-dot">·</span>
+        <span>Markdown · saved in this browser</span>
+      </footer>
+
+      <div id="toast" class="toast" hidden><span class="toast-check">✓</span><span id="toast-text"></span></div>
+
+      <!-- Drag a .md file (or a folder of them) anywhere onto the app to import -->
+      <div id="drop-overlay">
+        <div class="drop-card">
+          <div class="drop-ico"></div>
+          <div class="drop-title">Drop to import</div>
+          <div class="drop-sub">Markdown files become notes in this browser — nothing is uploaded</div>
         </div>
       </div>
-    </section>
-
-    <div id="toast" class="toast" hidden></div>
+    </div>
 
     <script type="module" src="./app.js"></script>
   </body>

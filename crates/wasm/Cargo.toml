@@ -21,9 +21,32 @@ console_error_panic_hook = { version = "0.1", optional = true }
 
 [features]
 default = ["console_error_panic_hook"]
+# Typst-in-WASM PDF export. Heavy dependency tree — kept opt-in so the HTML
+# pipeline iterates fast; enable with `wasm-pack build -- --features pdf`.
+pdf = ["ynote-core/pdf"]
 
+# rustc/LLVM emit post-MVP opcodes (bulk memory, non-trapping float→int casts
+# from Typst, sign-extension, …); wasm-opt must be told to accept the same
+# feature set. All are baseline-supported in every modern browser.
 [package.metadata.wasm-pack.profile.release]
-# Keep the wasm blob small; core already relies on comrak/syntect.
-# --enable-bulk-memory: rustc emits memory.fill/copy; wasm-opt must accept them.
-# (Bulk memory is baseline-supported in every browser since ~2020.)
-wasm-opt = ["-Oz", "--enable-bulk-memory"]
+wasm-opt = [
+  "-Oz",
+  "--enable-bulk-memory",
+  "--enable-nontrapping-float-to-int",
+  "--enable-sign-ext",
+  "--enable-mutable-globals",
+  "--enable-multivalue",
+  "--enable-reference-types",
+]
+
+# Same wasm-opt flags for the size-first `release-wasm` cargo profile.
+[package.metadata.wasm-pack.profile.release-wasm]
+wasm-opt = [
+  "-Oz",
+  "--enable-bulk-memory",
+  "--enable-nontrapping-float-to-int",
+  "--enable-sign-ext",
+  "--enable-mutable-globals",
+  "--enable-multivalue",
+  "--enable-reference-types",
+]

@@ -1,0 +1,86 @@
+name: Deploy ynote.onl
+
+# Builds both browser WASM bundles (editor + Typst PDF engine) and deploys the
+# static web/ app to Vercel. Vercel itself runs no build — it just serves what
+# this job uploads (see vercel.json + .vercelignore).
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   VERCEL_TOKEN       — https://vercel.com/account/tokens
+#   VERCEL_ORG_ID      — from `.vercel/project.json` after `vercel link`
+#   VERCEL_PROJECT_ID  — from `.vercel/project.json` after `vercel link`
+
+on:
+  push:
+    branches: [main]
+    # Only rebuild when something that affects the deploy changed.
+    paths:
+      - "web/**"
+      - "crates/**"
+      - "assets/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "vercel.json"
+      - ".vercelignore"
+      - ".github/workflows/deploy.yml"
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+# One in-flight deploy per ref; newer pushes cancel older runs.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust + wasm target
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add wasm32-unknown-unknown
+
+      # Caches the cargo registry and target/ — the Typst tree is large, so this
+      # turns a ~10-minute cold build into ~1-2 minutes on warm runs.
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: wasm-pdf
+
+      # Pin 0.15.0 — the rustwasm.github.io installer ships an old 0.13.1 that
+      # lacks `--profile` custom-profile support the pdf build relies on.
+      - name: Install wasm-pack 0.15.0
+        run: |
+          V=0.15.0
+          curl -fsSL "https://github.com/rustwasm/wasm-pack/releases/download/v${V}/wasm-pack-v${V}-x86_64-unknown-linux-musl.tar.gz" | tar -xz
+          sudo mv "wasm-pack-v${V}-x86_64-unknown-linux-musl/wasm-pack" /usr/local/bin/wasm-pack
+          wasm-pack --version
+
+      - name: Build WASM bundles → web/vendor + web/vendor-pdf
+        run: crates/wasm/build-web.sh
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      # Production on main / manual dispatch; preview on pull requests.
+      - name: Deploy (production)
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: |
+          url=$(vercel deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}")
+          echo "Deployed to $url"
+          echo "### ✅ Deployed to production" >> "$GITHUB_STEP_SUMMARY"
+          echo "$url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Deploy (preview)
+        if: github.event_name == 'pull_request'
+        run: |
+          url=$(vercel deploy --yes --token="${{ secrets.VERCEL_TOKEN }}")
+          echo "Preview: $url"
+          echo "### 🔎 Preview deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "$url" >> "$GITHUB_STEP_SUMMARY"

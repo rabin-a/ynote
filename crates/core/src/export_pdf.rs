@@ -62,10 +62,36 @@ fn build_typst_source_with(
     source: &str,
     toc: Option<bool>,
 ) -> String {
+    build_typst(source, &project.config().export.pdf, Some(project), rel, toc)
+}
+
+/// Render markdown straight to PDF bytes with an explicit config and no
+/// `Project` — the entry point the WASM (browser) adapter uses, where there is
+/// no filesystem. Images degrade to their alt text (no path to resolve).
+pub fn render_pdf_from_source(
+    source: &str,
+    cfg: &crate::config::PdfConfig,
+    toc: Option<bool>,
+) -> Result<Vec<u8>> {
+    let typ = build_typst(source, cfg, None, Path::new("main.md"), toc);
+    // `root` is only consulted to load local images via the filesystem; with no
+    // project there are none, so a placeholder root is never actually read.
+    let world = TypstWorld::new(typ, PathBuf::from("."));
+    compile(&world)
+}
+
+/// Shared lowering: template + config `#show` line + lowered body. `project` is
+/// `None` for the rootless/browser path (images become alt text).
+fn build_typst(
+    source: &str,
+    cfg: &crate::config::PdfConfig,
+    project: Option<&Project>,
+    rel: &Path,
+    toc: Option<bool>,
+) -> String {
     let arena = Arena::new();
     let (root, fm) = parse::parse(&arena, source);
 
-    let cfg = &project.config().export.pdf;
     let lowerer = Lowerer::new(project, rel, root);
     let body = lowerer.document(root);
 
@@ -185,7 +211,8 @@ fn valid_paper(s: &str) -> String {
 // ---------------------------------------------------------------------------
 
 struct Lowerer<'a> {
-    project: &'a Project,
+    /// `None` on the rootless/browser path — images then degrade to alt text.
+    project: Option<&'a Project>,
     rel: PathBuf,
     /// footnote name -> definition node, so references inline their content.
     footnotes: HashMap<String, &'a AstNode<'a>>,
@@ -195,7 +222,7 @@ struct Lowerer<'a> {
 }
 
 impl<'a> Lowerer<'a> {
-    fn new(project: &'a Project, rel: &Path, root: &'a AstNode<'a>) -> Self {
+    fn new(project: Option<&'a Project>, rel: &Path, root: &'a AstNode<'a>) -> Self {
         let mut footnotes = HashMap::new();
         for node in root.descendants() {
             if let NodeValue::FootnoteDefinition(def) = &node.data.borrow().value {
@@ -390,12 +417,17 @@ impl<'a> Lowerer<'a> {
         if is_remote(url) {
             return ts_content(&alt);
         }
+        // Without a project (browser/WASM path) there's no filesystem to
+        // resolve against, so a local image degrades to its alt text.
+        let Some(project) = self.project else {
+            return ts_content(&alt);
+        };
         // Resolve relative to the document, keep inside the project root, and
         // probe that the image is actually decodable — a broken image must
         // degrade to alt text rather than abort the whole compile.
-        match self.project.resolve_asset(&self.rel, url) {
+        match project.resolve_asset(&self.rel, url) {
             Ok(abs) if abs.is_file() && image_is_valid(&abs) => {
-                let rootrel = self.project.relativize(&abs);
+                let rootrel = project.relativize(&abs);
                 let p = rootrel.to_string_lossy().replace('\\', "/");
                 format!("#image({}, width: 80%)", ts_str(&p))
             }
@@ -459,11 +491,33 @@ fn ts_content(s: &str) -> String {
 // ---------------------------------------------------------------------------
 
 /// Fonts are loaded once from `typst-assets` and shared across compiles.
+// Desktop/CLI embed the full `typst-assets` set (~9.3 MB) so every family and
+// math glyph is available. The browser (wasm) build instead bundles only the
+// fonts a document actually needs — Libertinus Serif (the body fallback) and
+// DejaVu Sans Mono (code) — because referencing `typst_assets::fonts()` at all
+// pins its whole 9.3 MB blob into the binary. Not calling it lets the linker
+// dead-strip it, shrinking the wasm by ~7.5 MB. Trade-off: math glyphs degrade
+// in the browser PDF (no NewCM Math) — an accepted v1 gap, as on the desktop.
+#[cfg(target_arch = "wasm32")]
+const WASM_FONTS: &[&[u8]] = &[
+    include_bytes!("../../../assets/fonts/LibertinusSerif-Regular.otf"),
+    include_bytes!("../../../assets/fonts/LibertinusSerif-Bold.otf"),
+    include_bytes!("../../../assets/fonts/LibertinusSerif-Italic.otf"),
+    include_bytes!("../../../assets/fonts/LibertinusSerif-BoldItalic.otf"),
+    include_bytes!("../../../assets/fonts/DejaVuSansMono.ttf"),
+    include_bytes!("../../../assets/fonts/DejaVuSansMono-Bold.ttf"),
+];
+
 static FONTS: LazyLock<(LazyHash<FontBook>, Vec<Font>)> = LazyLock::new(|| {
     let mut fonts = Vec::new();
-    for data in typst_assets::fonts() {
-        let bytes = Bytes::new(data.to_vec());
-        for font in Font::iter(bytes) {
+
+    #[cfg(target_arch = "wasm32")]
+    let sources = WASM_FONTS.iter().map(|d| d.to_vec());
+    #[cfg(not(target_arch = "wasm32"))]
+    let sources = typst_assets::fonts().map(|d| d.to_vec());
+
+    for data in sources {
+        for font in Font::iter(Bytes::new(data)) {
             fonts.push(font);
         }
     }

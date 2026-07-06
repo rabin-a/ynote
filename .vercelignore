@@ -1,0 +1,6 @@
+# Only the static web app ships to Vercel. The Rust workspace, build output,
+# and everything else are never uploaded. `/*` ignores every top-level entry;
+# the negations re-include just what the deploy serves.
+/*
+!/web
+!/vercel.json
